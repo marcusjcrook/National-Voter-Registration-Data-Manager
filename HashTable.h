@@ -41,7 +41,7 @@ private:
         T* itemPointer; // pointer to the item
         size = 0; // size of the table
         unsigned long bucketIndex; // bucket index
-        OULinkedListEnumerator<T> d = NULL; // declare a new enumerator object
+        OULinkedListEnumerator<T> d{}; // declare a new enumerator object
 
         for (unsigned long index = 0; index < oldCapacity; ++index) {
             d = table[index]->enumerator(); // create enumerator object for particular bucket
@@ -202,7 +202,7 @@ void HashTable<T>::displayHashTable(const long& records, const long& attemptedRe
     std::cout << "Enter output file name: ";
     getline(std::cin, outputFile);
 
-    OULinkedListEnumerator<T> bucketEnum = NULL; // enumerator for bucket
+    OULinkedListEnumerator<T> bucketEnum{}; // enumerator for bucket
 
     if (outputFile.empty()) { // no file name entered, send to standard out
 
@@ -386,4 +386,3 @@ unsigned long HashTable<T>::getBucketNumber(const T* item) const {
 }
 
 #endif // !HASH_TABLE
-

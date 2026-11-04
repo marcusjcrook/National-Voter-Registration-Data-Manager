@@ -12,16 +12,14 @@ class HashTableEnumerator : public Enumerator<T>
 {
 private:
     unsigned long bucket = 0;                               // the current bucket during the enumeration process
-    OULinkedListEnumerator<T>* chainEnumerator = NULL;		// used to move through the linked list of the current bucket
-    HashTable<T>* hashTable = NULL;						    // pointer to the HashTable being enumerated
-    OULinkedList<T> test = NULL;
-    OULinkedListEnumerator<T> test2 = NULL;
+    OULinkedListEnumerator<T> chainEnumerator{};			// used to move through the linked list of the current bucket
+    HashTable<T>* hashTable = nullptr;						    // pointer to the HashTable being enumerated
     bool empty = false;
     T result;
 
 public:
     explicit HashTableEnumerator(HashTable<T>* hashTable);	// constructor needs a pointer to the HashTable to be enumerated
-    virtual ~HashTableEnumerator();
+    virtual ~HashTableEnumerator() = default;
     bool hasNext() const;									// true if there are elements that have not yet been returned via next()
     T next();												// throws ExceptionEnumerationBeyondEnd if no next item is available
     T peek() const;											// throws ExceptionEnumerationBeyondEnd if no next item is available
@@ -39,15 +37,7 @@ HashTableEnumerator<T>::HashTableEnumerator(HashTable<T>* hashTable) {
     while (bucket < hashTable->getBaseCapacity() && hashTable->table[bucket]->getSize() == 0) { // cycle to a non-empty bucket
         bucket++;
     }
-    test = *hashTable->table[bucket]; // initialize chain enumerator
-    test2 = test.enumerator();
-    chainEnumerator = &test2;
-}
-
-template <typename T>
-HashTableEnumerator<T>::~HashTableEnumerator() {
-    delete chainEnumerator;
-    chainEnumerator = NULL;
+    chainEnumerator = hashTable->table[bucket]->enumerator(); // initialize chain enumerator
 }
 
 template <typename T>
@@ -56,7 +46,7 @@ bool HashTableEnumerator<T>::hasNext() const {
     unsigned long temp = bucket;
     bool result = false;
 
-    if (chainEnumerator->hasNext()) { // have next, return true
+    if (chainEnumerator.hasNext()) { // have next, return true
         return true;
 
     }
@@ -86,14 +76,12 @@ T HashTableEnumerator<T>::next() {
             bucket++;
         }
 
-        test = *hashTable->table[bucket];
-        test2 = test.enumerator();
-        chainEnumerator = &test2;
+        chainEnumerator = hashTable->table[bucket]->enumerator();
     }
 
-    result = chainEnumerator->next();
+    result = chainEnumerator.next();
 
-    if (!chainEnumerator->hasNext()) { // bucket has no more elements, set bucket to empty
+    if (!chainEnumerator.hasNext()) { // bucket has no more elements, set bucket to empty
         empty = false;
         bucket++;
 
@@ -109,8 +97,8 @@ T HashTableEnumerator<T>::peek() const {
 
     unsigned long temp = bucket;
 
-    if (chainEnumerator->hasNext()) { // if table has next value, peek()
-        return chainEnumerator->peek();
+    if (chainEnumerator.hasNext()) { // if table has next value, peek()
+        return chainEnumerator.peek();
 
     } else {
 

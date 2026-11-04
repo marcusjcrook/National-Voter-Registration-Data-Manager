@@ -9,8 +9,9 @@ template <typename T>
 class OULinkedListEnumerator : public Enumerator<T>
 {
 private:
-    OULink<T>* current;
+    OULink<T>* current = nullptr;
 public:
+    OULinkedListEnumerator() = default;
     explicit OULinkedListEnumerator(OULink<T>* first);
     virtual ~OULinkedListEnumerator();
     bool hasNext() const;
