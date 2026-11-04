@@ -2,10 +2,8 @@
 #include <string>
 #include <utility>
 
-using namespace std;
-
 // overloaded operator to allow printing of records
-ostream& operator<<(std::ostream& os, const NvraRecord& record) {
+std::ostream& operator<<(std::ostream& os, const NvraRecord& record) {
     int loopIndex = 0;
     int numIndex = 0;
 
@@ -55,7 +53,7 @@ unsigned int NvraRecord::getNum(unsigned int index) const {
 }
 
 // get the string at the specified index
-string NvraRecord::getString(unsigned int index) const {
+std::string NvraRecord::getString(unsigned int index) const {
     return strings[index];
 }
 

@@ -6,7 +6,7 @@
 
 class NvraHasher : public Hasher<NvraRecord> {
 public:
-    unsigned long hash(const NvraRecord& item) const;
+    unsigned long hash(const NvraRecord& item) const override;
 };
 
 #endif // !NVRA_HASHER_H

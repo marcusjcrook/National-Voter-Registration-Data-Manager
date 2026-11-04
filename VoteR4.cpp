@@ -24,20 +24,18 @@
 #include "AVLTree.h"
 #include "AVLTreeOrder.h"
 
-using namespace std;
-
 // method to print search results for binary search
 void printSearchResults(long long index, TemplatedArray<NvraRecord>& array, NvraComparator& comparator) {
 
     // method to print the records
     long long recordsFound = 0;
-    for (int i = 0; i < (signed) array.getSize(); ++i) {
-        if (((index + i) < (signed) array.getSize()) && comparator.compare(array[index], array[index + i]) == 0) {
-            cout << array[index + i] << endl;
+    for (int i = 0; i < static_cast<int>(array.getSize()); ++i) {
+        if (((index + i) < static_cast<int>(array.getSize())) && comparator.compare(array[index], array[index + i]) == 0) {
+            std::cout << array[index + i] << std::endl;
             recordsFound++;
         }
     }
-    cout << "NVRA records found: " << recordsFound << "." << endl;
+    std::cout << "NVRA records found: " << recordsFound << "." << std::endl;
 }
 
 // linear search method if file is not sorted by selected column
@@ -55,10 +53,10 @@ void linearSearch(TemplatedArray<NvraRecord>& array, const NvraRecord& record, c
     Sorter<NvraRecord>::sort(array, comparator); // output on ZyBooks had to be printed in order
     for (unsigned int index = 0; index < array.getSize(); ++index) {
         if (comparator.compare(array[index], record) == 0) {
-            cout << array[index] << endl;
+            std::cout << array[index] << std::endl;
         }
     }
-    cout << "NVRA records found: " << recordsFound << "." << endl;
+    std::cout << "NVRA records found: " << recordsFound << "." << std::endl;
 }
 
 // method to print AVLTree by specified order
@@ -67,15 +65,15 @@ void printAVL(AVLTreeEnumerator<NvraRecord> treeEnum,
 
     std::string outputFile;
     std::cout << "Enter output file name: "; // prompt the user for a file name
-    getline(std::cin, outputFile);
+    std::getline(std::cin, outputFile);
 
 
     if (outputFile.empty()) { // no file entered, send to cout
         while (treeEnum.hasNext()) {
-            cout << treeEnum.next() << endl;
+            std::cout << treeEnum.next() << std::endl;
         }
 
-        cout << "Data lines read: " << attemptedRecords << "; Valid NVRA records read: " << validRecords <<
+        std::cout << "Data lines read: " << attemptedRecords << "; Valid NVRA records read: " << validRecords <<
              "; NVRA records in memory: " << records << std::endl;
     } else { // valid file chosen, so write data to it
         std::ofstream fileToWrite;
@@ -84,7 +82,7 @@ void printAVL(AVLTreeEnumerator<NvraRecord> treeEnum,
         if (fileToWrite.is_open()) {
 
             while (treeEnum.hasNext()) {
-                fileToWrite << treeEnum.next() << endl;
+                fileToWrite << treeEnum.next() << std::endl;
             }
 
             fileToWrite << "Data lines read: " << attemptedRecords <<
@@ -99,40 +97,40 @@ void printAVL(AVLTreeEnumerator<NvraRecord> treeEnum,
 // print the data from the array
 void outputLoop(TemplatedArray<NvraRecord>& array, const long& records, const long& attemptedRecords, const long& validRecords) {
 
-    string outputFile;
-    cout << "Enter output file name: ";
-    getline(cin, outputFile);
+    std::string outputFile;
+    std::cout << "Enter output file name: ";
+    std::getline(std::cin, outputFile);
 
     // no file name entered, send to cout
     if (outputFile.empty()) {
         for (unsigned int recordIndex = 0; recordIndex < array.getSize(); ++recordIndex) {
-            cout << array.get(recordIndex) << endl;
+            std::cout << array.get(recordIndex) << std::endl;
         }
     } else {
-        ofstream fileToWrite;
+        std::ofstream fileToWrite;
         fileToWrite.open(outputFile);
 
         // wasn't sure, based on instructions, whether to print to console or only print to file so I did both the be safe
         if (fileToWrite.is_open()) {
             for (unsigned long index = 0; index < array.getSize(); ++index) {
-                fileToWrite << array.get(index) << endl; // write the data line to the file
-                cout << array.get(index) << endl; // print the line to the console
+                fileToWrite << array.get(index) << std::endl; // write the data line to the file
+                std::cout << array.get(index) << std::endl; // print the line to the console
             }
 
             // print out information about data
             fileToWrite << "Data lines read: " << attemptedRecords <<
                         "; Valid NVRA records read: " << validRecords << "; NVRA records in memory: " <<
-                        records << endl;
+                        records << std::endl;
             fileToWrite.close();
         } else {
-            cout << "File is not available." << endl;
+            std::cout << "File is not available." << std::endl;
         }
     }
 
     // information about the records read in
-    cout << "Data lines read: " << attemptedRecords <<
+    std::cout << "Data lines read: " << attemptedRecords <<
          "; Valid NVRA records read: " << validRecords << "; NVRA records in memory: " <<
-         records << endl;
+         records << std::endl;
 }
 
 // method for sorting portion of data manipulation loop
@@ -140,15 +138,15 @@ unsigned int sortLoop(TemplatedArray<NvraRecord>& oldArray) {
 
     unsigned int result = 0; // returns column by which the data is sorted
     unsigned int sortField = 0;
-    string sortFieldString; // field by which to search
-    cout << "Enter sort field (0-23): " << endl;
-    getline(cin, sortFieldString);
+    std::string sortFieldString; // field by which to search
+    std::cout << "Enter sort field (0-23): " << std::endl;
+    std::getline(std::cin, sortFieldString);
 
     // check whether the input is valid
-    regex stringCheck ("^-?\\d+");
-    if (regex_match(sortFieldString,stringCheck)) {
+    std::regex stringCheck ("^-?\\d+");
+    if (std::regex_match(sortFieldString,stringCheck)) {
 
-        sortField = (unsigned) stoi(sortFieldString); // convert to unsigned int
+        sortField = static_cast<unsigned int>(std::stoi(sortFieldString)); // convert to unsigned int
         if (sortField <= 23) {
             NvraComparator n(sortField);
             Sorter<NvraRecord>::sort(oldArray, n); // sort the data by column number
@@ -162,21 +160,21 @@ unsigned int sortLoop(TemplatedArray<NvraRecord>& oldArray) {
 void findLoop(TemplatedArray<NvraRecord>& oldArray, HashTable<NvraRecord>* hashTable, unsigned int sortedColumn) {
 
     unsigned int findField = 0; // column to search
-    string findFieldString; // string to convert to column to search
-    string numberToSearch; // the non-negative string value to search (after converted to number below)
+    std::string findFieldString; // string to convert to column to search
+    std::string numberToSearch; // the non-negative string value to search (after converted to number below)
     int searchNumber = 0; // int conversion of above string
     unsigned int unsignedSearchNumber = 0; // needed the number to be unsigned
     long long result = 0; // resulting index or index location from binary search
-    string stringToSearch; // the string to search using binary search
+    std::string stringToSearch; // the string to search using binary search
     NvraRecord searchRecord; // record to search for
-    cout << "Enter search field (0-23): " << endl;
-    getline(cin, findFieldString);
+    std::cout << "Enter search field (0-23): " << std::endl;
+    std::getline(std::cin, findFieldString);
 
     // used regex again to check if number
-    regex stringCheck ("^-?\\d+");
-    if (regex_match (findFieldString,stringCheck)) {
+    std::regex stringCheck ("^-?\\d+");
+    if (std::regex_match (findFieldString,stringCheck)) {
 
-        findField = (unsigned) stoi(findFieldString);
+        findField = static_cast<unsigned int>(std::stoi(findFieldString));
         if (findField <= 23) {
             NvraComparator fieldCompare(findField);
             Sorter<NvraRecord>::sort(oldArray, fieldCompare);
@@ -196,8 +194,8 @@ void findLoop(TemplatedArray<NvraRecord>& oldArray, HashTable<NvraRecord>* hashT
 
             // if the column is a string column
             if (findField == 3 || findField == 11 || findField == 12) {
-                cout << "Enter exact text on which to search: " << endl;
-                getline(cin, stringToSearch);
+                std::cout << "Enter exact text on which to search: " << std::endl;
+                std::getline(std::cin, stringToSearch);
 
                 if (findField == 3) {
                     searchRecord.setString(stringToSearch, 0);
@@ -214,29 +212,29 @@ void findLoop(TemplatedArray<NvraRecord>& oldArray, HashTable<NvraRecord>* hashT
                     printSearchResults(result, oldArray, stringFieldCompare);
                 }
                 else {
-                    cout << "NVRA records found: " << 0 << endl;
+                    std::cout << "NVRA records found: " << 0 << std::endl;
                 }
             } else if (findField == 0) { // we are searching for record ID, so use hash
-                cout << "Enter non-negative field value: " << endl;
-                getline(cin, numberToSearch);
-                regex numCheck ("^-?\\d+"); // check for number validity
-                if (regex_match (numberToSearch,numCheck)) {
-                    searchNumber = stoi(numberToSearch);
-                    unsignedSearchNumber = (unsigned) searchNumber;
+                std::cout << "Enter non-negative field value: " << std::endl;
+                std::getline(std::cin, numberToSearch);
+                std::regex numCheck ("^-?\\d+"); // check for number validity
+                if (std::regex_match (numberToSearch,numCheck)) {
+                    searchNumber = std::stoi(numberToSearch);
+                    unsignedSearchNumber = static_cast<unsigned int>(searchNumber);
                     searchRecord.setNum(unsignedSearchNumber, searchIndex);
                     NvraRecord* searchRecordPointer = &searchRecord; // create record object with record ID
 
                     NvraRecord hashResult = hashTable->find(searchRecordPointer); // find the item in the hash table
-                    cout << hashResult << endl;
-                    cout << "NVRA records found: " << 1 << "." << endl; // only one record should be found
+                    std::cout << hashResult << std::endl;
+                    std::cout << "NVRA records found: " << 1 << "." << std::endl; // only one record should be found
                 }
             } else { // if the column us a number column
-                cout << "Enter non-negative field value: " << endl;
-                getline(cin, numberToSearch);
-                regex numCheck ("^-?\\d+");
-                if (regex_match (numberToSearch,numCheck)) {
-                    searchNumber = stoi(numberToSearch);
-                    unsignedSearchNumber = (unsigned) searchNumber;
+                std::cout << "Enter non-negative field value: " << std::endl;
+                std::getline(std::cin, numberToSearch);
+                std::regex numCheck ("^-?\\d+");
+                if (std::regex_match (numberToSearch,numCheck)) {
+                    searchNumber = std::stoi(numberToSearch);
+                    unsignedSearchNumber = static_cast<unsigned int>(searchNumber);
                     if (searchNumber >= 0) {
 
                         // set the searchRecord value at the index
@@ -250,7 +248,7 @@ void findLoop(TemplatedArray<NvraRecord>& oldArray, HashTable<NvraRecord>* hashT
                             if (result >= 0) {
                                 printSearchResults(result, oldArray, numsFieldCompare);
                             } else {
-                                cout << "NVRA records found: " << 0 << endl;
+                                std::cout << "NVRA records found: " << 0 << std::endl;
                             }
                         }
                         else { // not sorted by the column, use linear search
@@ -378,35 +376,35 @@ bool mergeLoop(AVLTree<NvraRecord>*& oldTree, long& records, long& attemptedReco
 
     bool firstFile = first;
     bool dataRead = false; // has data been read in?
-    string requestedFile;
+    std::string requestedFile;
     NvraComparator compare(0);
     NvraComparator* comparePointer = &compare;
     auto* newTree = new AVLTree<NvraRecord>(comparePointer);
 
-    cout << "Enter data file name: ";
+    std::cout << "Enter data file name: ";
 
-    while (getline(cin, requestedFile)) {
+    while (std::getline(std::cin, requestedFile)) {
 
         if (requestedFile.empty()) { // file is empty, so exit loop
             break;
         }
 
-        ifstream fileToRead(requestedFile);
+        std::ifstream fileToRead(requestedFile);
 
         if (fileToRead.is_open()) {
 
             dataRead = true; // we have read some data, so set to true
             //bool duplicateFound = false;
 
-            string textToRead; // the text to read
-            getline(fileToRead, textToRead); // ignore first line
+            std::string textToRead; // the text to read
+            std::getline(fileToRead, textToRead); // ignore first line
 
             int errorLine = 0; // line number for error printing
 
-            firstLoop:while(getline(fileToRead, textToRead)) {
+            firstLoop:while(std::getline(fileToRead, textToRead)) {
                 int columnNumber = 0;
                 errorLine++; // keeps track of error line
-                stringstream lineStream(textToRead);
+                std::stringstream lineStream(textToRead);
                 NvraRecord nvraRecordKeeper; // stores the present nvraRecord
                 int nvraRecordIntCount = 1; // counts number of ints read into an nvraRecord
                 int nvraRecordStringCounter = 0; // counts number of strings read into an nvraRecord
@@ -415,16 +413,16 @@ bool mergeLoop(AVLTree<NvraRecord>*& oldTree, long& records, long& attemptedReco
                 unsigned int recordIdHolder = 0; // variable to hold record ID value
                 int recordIdSigned = 0;
 
-                getline(lineStream, textToRead, ','); // split by comma
-                recordIdSigned = stoi(textToRead); // save record ID for duplicate checking
-                recordIdHolder = (unsigned) recordIdSigned;
+                std::getline(lineStream, textToRead, ','); // split by comma
+                recordIdSigned = std::stoi(textToRead); // save record ID for duplicate checking
+                recordIdHolder = static_cast<unsigned int>(recordIdSigned);
                 nvraRecordKeeper.addNum(recordIdHolder); // add the record ID to nums array
                 attemptedRecords++;
 
                 // split the file string
-                while (getline(lineStream, textToRead, ',')) {
+                while (std::getline(lineStream, textToRead, ',')) {
 
-                    stringstream tokenStream(textToRead);
+                    std::stringstream tokenStream(textToRead);
 
                     // originally used regex here, but changed to work with zyLabs. Just used column number instead
                     if (columnNumber == 2 || columnNumber == 10 || columnNumber == 11) {
@@ -436,11 +434,11 @@ bool mergeLoop(AVLTree<NvraRecord>*& oldTree, long& records, long& attemptedReco
 
                         if (stringToIntValue < 0) {
                             // negative number found, print error message!
-                            cout << "Invalid data at line " << errorLine << "." << endl;
+                            std::cout << "Invalid data at line " << errorLine << "." << std::endl;
                             goto firstLoop; // the dreaded goto statement to go back to beginning of loop
                         } else {
                             // add the number to nums[] array
-                            unsignedStringToInt = (unsigned) stringToIntValue;
+                            unsignedStringToInt = static_cast<unsigned int>(stringToIntValue);
                             nvraRecordKeeper.addNum(unsignedStringToInt); // add the number to the nums[]
                             nvraRecordIntCount++; // increase nums counter
                             columnNumber++; // increase the column number
@@ -466,13 +464,13 @@ bool mergeLoop(AVLTree<NvraRecord>*& oldTree, long& records, long& attemptedReco
 
                 if (!isInserted) {
                     // duplicate found, print error message
-                    cout << "Duplicate record ID " << recordIdHolder << " at line " << errorLine << "." << endl;
+                    std::cout << "Duplicate record ID " << recordIdHolder << " at line " << errorLine << "." << std::endl;
                     //records--; // reduce record by one since a duplicate was found
                 }
             }
         } else { // file is not available
-            cout << "File is not available." << endl;
-            cout << "Enter data file name: ";
+            std::cout << "File is not available." << std::endl;
+            std::cout << "Enter data file name: ";
             continue; // to allow for a new file to be read if file not available
         }
         fileToRead.close();
@@ -517,28 +515,28 @@ void purgeLoop(AVLTree<NvraRecord>* oldTree, long& records, long& attemptedRecor
     NvraComparator compare(0);
     NvraComparator* comparePointer = &compare;
     auto* newTree = new AVLTree<NvraRecord>(comparePointer);
-    string requestedFile;
-    cout << "Enter data file name: ";
+    std::string requestedFile;
+    std::cout << "Enter data file name: ";
 
-    while (getline(cin, requestedFile)) {
+    while (std::getline(std::cin, requestedFile)) {
 
         if (requestedFile.empty()) {
             break; // file is empty, so exit loop
         }
 
-        ifstream fileToRead(requestedFile);
+        std::ifstream fileToRead(requestedFile);
 
         if (fileToRead.is_open()) {
 
-            string textToRead; // the text to read
-            getline(fileToRead, textToRead); // ignore first line
+            std::string textToRead; // the text to read
+            std::getline(fileToRead, textToRead); // ignore first line
 
             int errorLine = 0; // line number for error printing
 
-            firstLoop:while(getline(fileToRead, textToRead)) {
+            firstLoop:while(std::getline(fileToRead, textToRead)) {
             int columnNumber = 0;
             errorLine++; // keeps track of error line
-            stringstream lineStream(textToRead);
+            std::stringstream lineStream(textToRead);
             NvraRecord nvraRecordKeeper; // stores the present nvraRecord
             int nvraRecordIntCount = 1; // counts number of ints read into an nvraRecord
             int nvraRecordStringCounter = 0; // counts number of strings read into an nvraRecord
@@ -548,16 +546,16 @@ void purgeLoop(AVLTree<NvraRecord>* oldTree, long& records, long& attemptedRecor
             int recordIdSigned = 0;
 
             // separate the first number for duplicate checking
-            getline(lineStream, textToRead, ',');
-            recordIdSigned = stoi(textToRead); // save record ID for duplicate checking
-            recordIdHolder = (unsigned) recordIdSigned;
+            std::getline(lineStream, textToRead, ',');
+            recordIdSigned = std::stoi(textToRead); // save record ID for duplicate checking
+            recordIdHolder = static_cast<unsigned int>(recordIdSigned);
             nvraRecordKeeper.addNum(recordIdHolder); // add the record ID to nums array
             attemptedRecords++;
 
             // split the file string by comma
-            while (getline(lineStream, textToRead, ',')) {
+            while (std::getline(lineStream, textToRead, ',')) {
 
-                stringstream tokenStream(textToRead);
+                std::stringstream tokenStream(textToRead);
 
                 // string column is chosen
                 if (columnNumber == 2 || columnNumber == 10 || columnNumber == 11) {
@@ -569,11 +567,11 @@ void purgeLoop(AVLTree<NvraRecord>* oldTree, long& records, long& attemptedRecor
 
                     if (stringToIntValue < 0) {
                         // negative number found, print error message
-                        cout << "Invalid data at line " << errorLine << "." << endl;
+                        std::cout << "Invalid data at line " << errorLine << "." << std::endl;
                         goto firstLoop; // go back to loop condition
                     } else {
                         // add the number to nums[] array
-                        unsignedStringToInt = (unsigned) stringToIntValue;
+                        unsignedStringToInt = static_cast<unsigned int>(stringToIntValue);
                         nvraRecordKeeper.addNum(unsignedStringToInt); // add the number to the nums[]
                         nvraRecordIntCount++; // increase nums counter
                         columnNumber++; // increase the column number
@@ -586,8 +584,8 @@ void purgeLoop(AVLTree<NvraRecord>* oldTree, long& records, long& attemptedRecor
             }
 
         } else { // file is not available, print message
-            cout << "File is not available." << endl;
-            cout << "Enter data file name: ";
+            std::cout << "File is not available." << std::endl;
+            std::cout << "Enter data file name: ";
             continue;
         }
 
@@ -622,9 +620,9 @@ int main() {
         if (!dataRead) { // data has not been read in, so exit
             return 0;
         } else { // data has been read in, so enter option loop
-            string answer;
-            cout << "Enter (o)utput, (s)ort, (f)ind, (m)erge, (p)urge, (h)ash table, (pre)order, (in)order, (post)order, or (q)uit: ";
-            getline(cin, answer);
+            std::string answer;
+            std::cout << "Enter (o)utput, (s)ort, (f)ind, (m)erge, (p)urge, (h)ash table, (pre)order, (in)order, (post)order, or (q)uit: ";
+            std::getline(std::cin, answer);
             unsigned int columnSorted = 0; // keeps track of the column by which data is sorted
 
             while (answer != "q") {
@@ -676,40 +674,40 @@ int main() {
                 } else {
 
                     // option not valid, repeat prompt
-                    cout << "Please enter a valid option or type 'q' to quit " << endl;
+                    std::cout << "Please enter a valid option or type 'q' to quit " << std::endl;
 
                 }
                 // repeat prompt
-                cout << "Enter (o)utput, (s)ort, (f)ind, (m)erge, (p)urge, (h)ash table, (pre)order, (in)order, (post)order, or (q)uit: ";
-                cin.clear(); // clear cin
-                getline(cin, answer); // get the next file
+                std::cout << "Enter (o)utput, (s)ort, (f)ind, (m)erge, (p)urge, (h)ash table, (pre)order, (in)order, (post)order, or (q)uit: ";
+                std::cin.clear(); // clear cin
+                std::getline(std::cin, answer); // get the next file
             }
 
             // print friendly message
-            cout << "Thanks for using VoteR." << endl;
+            std::cout << "Thanks for using VoteR." << std::endl;
         }
     } catch (const ExceptionIndexOutOfRange* e ) { // index is out of range,throw an exception
-        cout << "Index out of bounds! Enter a valid index" << endl;
+        std::cout << "Index out of bounds! Enter a valid index" << std::endl;
         delete e;
         return EXIT_FAILURE;
     } catch (const ExceptionMemoryNotAvailable* e) { // memory unavailable
-        cout << "Memory not available!" << endl;
+        std::cout << "Memory not available!" << std::endl;
         delete e;
         return EXIT_FAILURE;
     } catch (const ExceptionEnumerationBeyondEnd* e) { // enumeration extended beyond the end of the LinkedList
-        cout << "Enumeration beyond end!" << endl;
+        std::cout << "Enumeration beyond end!" << std::endl;
         delete e;
         return EXIT_FAILURE;
     } catch (const ExceptionLinkedListAccess* e) { // accessing element beyond end of LinkedList
-        cout << "Exception linkedlist access!" << endl;
+        std::cout << "Exception linkedlist access!" << std::endl;
         delete e;
         return EXIT_FAILURE;
     } catch (const ExceptionHashTableAccess* e) { // accessing element not in hash table
-        cout << "Exception Hash Table access!" << endl;
+        std::cout << "Exception Hash Table access!" << std::endl;
         delete e;
         return EXIT_FAILURE;
     } catch (const ExceptionAVLTreeAccess* e) { // attempting to access element beyond tree size
-        cout << "Exception AVLTree access!" << endl;
+        std::cout << "Exception AVLTree access!" << std::endl;
         delete e;
         return EXIT_FAILURE;
     }

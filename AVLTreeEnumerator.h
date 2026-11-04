@@ -62,10 +62,10 @@ private:
     }
 public:
     AVLTreeEnumerator(const AVLTree<T>* root, AVLTreeOrder order);
-    virtual ~AVLTreeEnumerator();
-    bool hasNext() const;
-    T next();						// throws ExceptionEnumerationBeyondEnd if no next item is available
-    T peek() const;					// throws ExceptionEnumerationBeyondEnd if no next item is available
+    virtual ~AVLTreeEnumerator() = default;
+    bool hasNext() const override;
+    T next() override;						// throws ExceptionEnumerationBeyondEnd if no next item is available
+    T peek() const override;					// throws ExceptionEnumerationBeyondEnd if no next item is available
     AVLTreeOrder getOrder();		// returns the order of this enumerator (preorder, inorder, or postorder)
 };
 
@@ -79,9 +79,6 @@ AVLTreeEnumerator<T>::AVLTreeEnumerator(const AVLTree<T>* root, AVLTreeOrder ord
     this->order = order;
     buildTraversalStack(root); // build the stack
 }
-
-template <typename T>
-AVLTreeEnumerator<T>::~AVLTreeEnumerator() = default;
 
 template <typename T>
 bool AVLTreeEnumerator<T>::hasNext() const {

@@ -13,10 +13,10 @@ private:
 public:
     OULinkedListEnumerator() = default;
     explicit OULinkedListEnumerator(OULink<T>* first);
-    virtual ~OULinkedListEnumerator();
-    bool hasNext() const;
-    T next();
-    T peek() const;
+    virtual ~OULinkedListEnumerator() = default;
+    bool hasNext() const override;
+    T next() override;
+    T peek() const override;
 };
 
 // constructor for OULinkedListEnumerator
@@ -24,9 +24,6 @@ template <typename T>
 OULinkedListEnumerator<T>::OULinkedListEnumerator(OULink<T>* first) {
     current = first; // set current to first element
 }
-
-template <typename T>
-OULinkedListEnumerator<T>::~OULinkedListEnumerator() = default;
 
 // returns true if there is a next element
 template <typename T>

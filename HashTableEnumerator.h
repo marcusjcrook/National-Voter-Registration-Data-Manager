@@ -20,9 +20,9 @@ private:
 public:
     explicit HashTableEnumerator(HashTable<T>* hashTable);	// constructor needs a pointer to the HashTable to be enumerated
     virtual ~HashTableEnumerator() = default;
-    bool hasNext() const;									// true if there are elements that have not yet been returned via next()
-    T next();												// throws ExceptionEnumerationBeyondEnd if no next item is available
-    T peek() const;											// throws ExceptionEnumerationBeyondEnd if no next item is available
+    bool hasNext() const override;							// true if there are elements that have not yet been returned via next()
+    T next() override;										// throws ExceptionEnumerationBeyondEnd if no next item is available
+    T peek() const override;									// throws ExceptionEnumerationBeyondEnd if no next item is available
 };
 
 template <typename T>
