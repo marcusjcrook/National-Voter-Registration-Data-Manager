@@ -28,7 +28,7 @@ public:
 template <typename T>
 HashTableEnumerator<T>::HashTableEnumerator(HashTable<T>* hashTable) {
 
-    if(hashTable == NULL || hashTable->getSize() == 0) { // hash table is in invalid state to enumerate, so throw exception
+    if(hashTable == nullptr || hashTable->getSize() == 0) { // hash table is in invalid state to enumerate, so throw exception
         throw new ExceptionHashTableAccess();
     }
 

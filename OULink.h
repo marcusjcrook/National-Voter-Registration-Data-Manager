@@ -11,8 +11,8 @@ class OULink {
     template <typename>
     friend class OULinkedListEnumerator;
 private:
-    T* data = NULL;										// pointer to data item of any type
-    OULink* next = NULL;								// pointer to next link
+    T* data = nullptr;										// pointer to data item of any type
+    OULink* next = nullptr;								// pointer to next link
 public:
     explicit OULink(const T* item);
     virtual ~OULink();
@@ -28,9 +28,9 @@ OULink<T>::OULink(const T* item) {
 template<typename T>
 OULink<T>::~OULink() {
     delete data; // delete data at first
-    data = NULL;
+    data = nullptr;
     delete next; // delete rest of list
-    next = NULL;
+    next = nullptr;
 
 }
 #endif // !OU_LINK_H

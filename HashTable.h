@@ -24,15 +24,15 @@ class HashTable {
     template <typename>
     friend class HashTableEnumerator;						// necessary to allow the enumerator to access the table's private data
 private:
-    Comparator<T>* comparator = NULL;						// used to determine item equality
-    Hasher<T>* hasher = NULL;								// used to compute hash value
+    Comparator<T>* comparator = nullptr;					// used to determine item equality
+    Hasher<T>* hasher = nullptr;							// used to compute hash value
     unsigned long size = 0;									// actual number of items currently in hash table
     float maxLoadFactor = DEFAULT_MAX_LOAD_FACTOR;			// the load factor used to determine when to increase the table size
     float minLoadFactor = DEFAULT_MIN_LOAD_FACTOR;			// the load factor used to determine when to decrease the table size
     unsigned int scheduleIndex = DEFAULT_SCHEDULE_INDEX;	// the index of current location in the size schedule
     unsigned long baseCapacity = DEFAULT_BASE_CAPACITY;		// the size of the array
     unsigned long totalCapacity = baseCapacity;				// the size of the array plus number of elements from chains of more than one link
-    OULinkedList<T>** table = NULL;                         // table will be an array of pointers to OULinkedLists of type T
+    OULinkedList<T>** table = nullptr;                      // table will be an array of pointers to OULinkedLists of type T
 
     // method to copy the table
     void copyTable(OULinkedList<T>** &temp, unsigned long oldCapacity) {
@@ -70,7 +70,7 @@ private:
 
         auto** temp = new (std::nothrow) OULinkedList<T>*[SCHEDULE[scheduleIndex]];
 
-        if (temp == NULL) { // if no memory available, throw exception!
+        if (temp == nullptr) { // if no memory available, throw exception!
             throw new ExceptionMemoryNotAvailable();
         }
 
@@ -89,7 +89,7 @@ private:
 
         auto** temp = new (std::nothrow) OULinkedList<T>*[SCHEDULE[scheduleIndex]];
 
-        if (temp == NULL) {
+        if (temp == nullptr) {
             throw new ExceptionMemoryNotAvailable();
         }
 
@@ -107,7 +107,7 @@ private:
         }
 
         delete[] table;
-        table = NULL;
+        table = nullptr;
     }
 
     // method to initialize the table
@@ -188,7 +188,7 @@ template <typename T>
 HashTable<T>::~HashTable() {
 
     deleteTable(baseCapacity);
-    comparator = NULL;
+    comparator = nullptr;
     baseCapacity = DEFAULT_BASE_CAPACITY; // reset the base and total capacities
     totalCapacity = baseCapacity;
     size = 0;
@@ -339,7 +339,7 @@ T HashTable<T>::find(const T* item) const {
     T result;
     bool found = false;
 
-    if (table[index] == NULL) { // bucket where element should be is empty, throw exception
+    if (table[index] == nullptr) { // bucket where element should be is empty, throw exception
         throw new ExceptionHashTableAccess();
     }
 

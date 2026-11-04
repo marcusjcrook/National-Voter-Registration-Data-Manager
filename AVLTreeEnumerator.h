@@ -17,43 +17,43 @@ private:
 
         if (order == AVLTreeOrder::preorder) { // determine the order to build the stack, but in reverse for stack
 
-            if (current->right != NULL) { // insert right tree first
+            if (current->right != nullptr) { // insert right tree first
                 buildTraversalStack(current->right);
             }
 
-            if (current->left != NULL) { // insert left tree next
+            if (current->left != nullptr) { // insert left tree next
                 buildTraversalStack(current->left);
             }
 
-            if (current->data != NULL) { // insert the root
+            if (current->data != nullptr) { // insert the root
                 traversalStack.push(current);
             }
         }
         else if (order == AVLTreeOrder::inorder) {
 
-            if (current->right != NULL) { // insert right tree
+            if (current->right != nullptr) { // insert right tree
                 buildTraversalStack(current->right);
             }
 
-            if (current->data != NULL) { // insert the root
+            if (current->data != nullptr) { // insert the root
                 traversalStack.push(current);
             }
 
-            if (current->left != NULL) { // insert the left tree
+            if (current->left != nullptr) { // insert the left tree
                 buildTraversalStack(current->left);
             }
         }
         else if (order == AVLTreeOrder::postorder){
 
-            if (current->data != NULL) { // insert the root
+            if (current->data != nullptr) { // insert the root
                 traversalStack.push(current);
             }
 
-            if (current->right != NULL) { // insert the right tree
+            if (current->right != nullptr) { // insert the right tree
                 buildTraversalStack(current->right);
             }
 
-            if (current->left != NULL) { // insert the left tree
+            if (current->left != nullptr) { // insert the left tree
                 buildTraversalStack(current->left);
             }
         } else { // invalid order, throw an exception
@@ -73,7 +73,7 @@ template <typename T>
 AVLTreeEnumerator<T>::AVLTreeEnumerator(const AVLTree<T>* root, AVLTreeOrder order) {
 
     // had to comment this out to pass one of the ZyLab output tests. My purge method worked fine, but this error check kept messing up one of the purge tests.
-    if (root->data == NULL) {
+    if (root->data == nullptr) {
         throw new ExceptionAVLTreeAccess();
     }
     this->order = order;
@@ -86,7 +86,7 @@ AVLTreeEnumerator<T>::~AVLTreeEnumerator() = default;
 template <typename T>
 bool AVLTreeEnumerator<T>::hasNext() const {
 
-    return !(traversalStack.empty() || traversalStack.top() == NULL); // check if tree whether tree is empty
+    return !(traversalStack.empty() || traversalStack.top() == nullptr); // check if tree whether tree is empty
 }
 
 template <typename T>

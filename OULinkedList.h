@@ -18,10 +18,10 @@ class OULinkedList {
     friend class OULinkedListEnumerator;
 
 private:
-    Comparator<T>* comparator = NULL;				// used to determine list order and item equality
+    Comparator<T>* comparator = nullptr;				// used to determine list order and item equality
     unsigned long size = 0;							// actual number of items currently in list
-    OULink<T>* first = NULL;						// pointer to first link in list
-    OULink<T>* last = NULL;							// pointer to last link in list
+    OULink<T>* first = nullptr;						// pointer to first link in list
+    OULink<T>* last = nullptr;							// pointer to last link in list
     bool DuplicateCheck(T* item);                   // private helper method to check for duplictates
 public:
     explicit OULinkedList(Comparator<T>* comparator);		// creates empty linked list with comparator
@@ -110,10 +110,10 @@ OULinkedList<T>::OULinkedList(Comparator<T>* comparator) {
 
 template <typename T>
 OULinkedList<T>::~OULinkedList() {
-    this->comparator = NULL;
-    if (first != NULL) {
+    this->comparator = nullptr;
+    if (first != nullptr) {
         delete first;
-        first = NULL;
+        first = nullptr;
     }
 }
 
@@ -139,12 +139,12 @@ bool OULinkedList<T>::insert(const T* item) {
     bool isInserted = false;
     auto* listItem = new (std::nothrow) OULink<T>(data);
 
-    if (data == NULL || listItem == NULL) {
+    if (data == nullptr || listItem == nullptr) {
         throw new ExceptionMemoryNotAvailable();
     }
 
     // insert at beginning
-    if (first == NULL) {
+    if (first == nullptr) {
 
         first = listItem;
         last = first;
@@ -169,7 +169,7 @@ bool OULinkedList<T>::insert(const T* item) {
         OULink<T>* currentItem = first;
         OULink<T>* previousItem = first;
 
-        while (currentItem != NULL) {
+        while (currentItem != nullptr) {
 
             if (comparator->compare(*currentItem->data, *data) > 0) {
                 previousItem->next = listItem;
@@ -184,7 +184,7 @@ bool OULinkedList<T>::insert(const T* item) {
         }
 
         // insert at end
-        if (currentItem == NULL) {
+        if (currentItem == nullptr) {
 
             last->next = listItem;
             last = last->next;
@@ -201,12 +201,12 @@ bool OULinkedList<T>::append(const T* item) {
 
     auto* listItem = new (std::nothrow) OULink<T>(item);
 
-    if (listItem == NULL) {
+    if (listItem == nullptr) {
         throw new ExceptionMemoryNotAvailable();
     }
 
     // if no first item, set the first item with above item
-    if (first == NULL) {
+    if (first == nullptr) {
         first = listItem;
         last = first;
         size++;
@@ -229,12 +229,12 @@ bool OULinkedList<T>::replace(const T* item) {
 
     auto* replaceItem = new (std::nothrow) T(*item);
 
-    if (replaceItem == NULL) {
+    if (replaceItem == nullptr) {
         throw new ExceptionMemoryNotAvailable();
     }
 
     // list is empty so return false
-    if (first == NULL) {
+    if (first == nullptr) {
         return false;
     }
     // first item is identical to item argument passed in
@@ -247,7 +247,7 @@ bool OULinkedList<T>::replace(const T* item) {
         // check other values to replace
         OULink<T>* currentItem = first;
 
-        while (currentItem != NULL) {
+        while (currentItem != nullptr) {
 
             if (comparator->compare(*currentItem->data, *item) == 0) {
                 *currentItem->data = *replaceItem;
@@ -265,12 +265,12 @@ bool OULinkedList<T>::remove(const T* item) {
 
     auto* listItem = new (std::nothrow) OULink<T>(item);
 
-    if (listItem == NULL) {
+    if (listItem == nullptr) {
         throw new ExceptionMemoryNotAvailable();
     }
 
     // list is empty so nothing to remove
-    if (first == NULL) {
+    if (first == nullptr) {
         return false;
     }
     // item is identical with data held by first, so delete first
@@ -285,7 +285,7 @@ bool OULinkedList<T>::remove(const T* item) {
         OULink<T>* currentItem = first;
         OULink<T>* previousItem = first;
 
-        while (currentItem != NULL) {
+        while (currentItem != nullptr) {
 
             if (comparator->compare(*currentItem->data, *listItem->data) == 0) {
                     previousItem->next = currentItem->next;
@@ -308,7 +308,7 @@ template<typename T>
 T OULinkedList<T>::get() const {
 
     T result;
-    if (first != NULL) {
+    if (first != nullptr) {
         result = *first->data; // return first element
     }
     else {
@@ -320,7 +320,7 @@ T OULinkedList<T>::get() const {
 template<typename T>
 OULink<T>* OULinkedList<T>::getFirstLink() {
 
-    if (first == NULL) {
+    if (first == nullptr) {
         throw new ExceptionLinkedListAccess();
     }
 
@@ -332,7 +332,7 @@ T OULinkedList<T>::find(const T* item) const {
 
     T foundItem;
     // list is empty, return false
-    if (first == NULL) {
+    if (first == nullptr) {
         throw new ExceptionLinkedListAccess();
     }
     // first data is identical to item, so return item
@@ -343,7 +343,7 @@ T OULinkedList<T>::find(const T* item) const {
         // check the rest of the list
         OULink<T> *currentItem = first;
 
-        while (currentItem != NULL) {
+        while (currentItem != nullptr) {
 
             if (comparator->compare(*currentItem->data, *item) == 0) {
                 return *currentItem->data;

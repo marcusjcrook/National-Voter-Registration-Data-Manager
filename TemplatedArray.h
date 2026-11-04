@@ -12,7 +12,7 @@ private:
 
     unsigned long capacity = DEFAULT_ARRAY_CAPACITY; // maximum capacity, in records
     unsigned long size = 0; // actual number of items currently in array
-    Type* data = NULL; // pointer to array of records
+    Type* data = nullptr; // pointer to array of records
 
     // private helper method for doubling capacity
     void doubleCapacity() {
@@ -21,7 +21,7 @@ private:
         capacity *= 2;
         Type* tempPointer = new (std::nothrow) Type[capacity];
 
-        if (tempPointer == NULL) {
+        if (tempPointer == nullptr) {
             throw new ExceptionMemoryNotAvailable;
         }
 
@@ -37,7 +37,7 @@ private:
         capacity /= 2;
         Type *tempPointer = new (std::nothrow) Type[capacity];
 
-        if (tempPointer == NULL) {
+        if (tempPointer == nullptr) {
             throw new ExceptionMemoryNotAvailable();
         }
 
@@ -59,7 +59,7 @@ public:
     explicit TemplatedArray(unsigned long capacity) {
         data = new (std::nothrow) Type[capacity];
 
-        if (data == NULL) {
+        if (data == nullptr) {
             throw new ExceptionMemoryNotAvailable();
         }
 
@@ -96,7 +96,7 @@ public:
         Type* tempArray = new (std::nothrow) Type[capacity];
 
         // not enough memory; throw exception
-        if (tempArray == NULL) {
+        if (tempArray == nullptr) {
             throw new ExceptionMemoryNotAvailable();
         }
 
@@ -131,7 +131,7 @@ public:
         Type* tempArray = new (std::nothrow) Type[capacity];
 
         // not enough memory; throw exception
-        if (tempArray == NULL) {
+        if (tempArray == nullptr) {
             throw new ExceptionMemoryNotAvailable();
         }
 
@@ -153,7 +153,7 @@ public:
         delete[] data;
         data = new (std::nothrow) Type[capacity];
 
-        if (data == NULL) {
+        if (data == nullptr) {
             throw new ExceptionMemoryNotAvailable();
         }
 
@@ -171,7 +171,7 @@ public:
         Type* tempArray = new (std::nothrow) Type[capacity];
 
         // not enough memory; throw exception
-        if (tempArray == NULL) {
+        if (tempArray == nullptr) {
             throw new ExceptionMemoryNotAvailable();
         }
 

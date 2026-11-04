@@ -32,7 +32,7 @@ OULinkedListEnumerator<T>::~OULinkedListEnumerator() = default;
 template <typename T>
 bool OULinkedListEnumerator<T>::hasNext() const {
     // LinkedList has next element, return true
-    return current != NULL;
+    return current != nullptr;
 }
 
  //returns copy of next element and advances to next position
@@ -40,7 +40,7 @@ bool OULinkedListEnumerator<T>::hasNext() const {
 template <typename T>
 T OULinkedListEnumerator<T>::next() {
 
-    if (current == NULL) {
+    if (current == nullptr) {
         throw new ExceptionEnumerationBeyondEnd();
     }
 
@@ -54,7 +54,7 @@ T OULinkedListEnumerator<T>::next() {
 template<typename T>
 T OULinkedListEnumerator<T>::peek() const {
 
-    if (current == NULL) {
+    if (current == nullptr) {
         throw new ExceptionEnumerationBeyondEnd();
     }
     T item = *current->data; // return data without advancing position
