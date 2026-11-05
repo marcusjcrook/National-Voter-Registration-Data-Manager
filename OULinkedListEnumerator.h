@@ -9,10 +9,10 @@ template <typename T>
 class OULinkedListEnumerator : public Enumerator<T>
 {
 private:
-    OULink<T>* current = nullptr;
+    const OULink<T>* current = nullptr;
 public:
     OULinkedListEnumerator() = default;
-    explicit OULinkedListEnumerator(OULink<T>* first);
+    explicit OULinkedListEnumerator(const OULink<T>* first);
     virtual ~OULinkedListEnumerator() = default;
     bool hasNext() const override;
     T next() override;
@@ -21,7 +21,7 @@ public:
 
 // constructor for OULinkedListEnumerator
 template <typename T>
-OULinkedListEnumerator<T>::OULinkedListEnumerator(OULink<T>* first) {
+OULinkedListEnumerator<T>::OULinkedListEnumerator(const OULink<T>* first) {
     current = first; // set current to first element
 }
 

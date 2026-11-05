@@ -1,14 +1,24 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <array>
+#include <charconv>
+#include <expected>
+#include <system_error>
 #include <algorithm>
-#include <stdio.h>
-#include <cstdio>
-#include <cctype>
-#include <regex>
 #include <cmath>
 #include <fstream>
 #include <memory>
+#include <string_view>
+
+bool parseUnsignedInput(const std::string& input, unsigned int& value) {
+    if (input.empty()) {
+        return false;
+    }
+
+    const auto [end, error] = std::from_chars(input.data(), input.data() + input.size(), value);
+    return error == std::errc{} && end == input.data() + input.size();
+}
 #include "NvraRecord.h"
 #include "Sorter.h"
 #include "Search.h"
@@ -26,7 +36,7 @@
 #include "AVLTreeOrder.h"
 
 // method to print search results for binary search
-void printSearchResults(long long index, TemplatedArray<NvraRecord>& array, NvraComparator& comparator) {
+void printSearchResults(long long index, const TemplatedArray<NvraRecord>& array, NvraComparator& comparator) {
 
     // method to print the records
     long long recordsFound = 0;
@@ -96,7 +106,7 @@ void printAVL(AVLTreeEnumerator<NvraRecord> treeEnum,
 }
 
 // print the data from the array
-void outputLoop(TemplatedArray<NvraRecord>& array, const long& records, const long& attemptedRecords, const long& validRecords) {
+void outputLoop(const TemplatedArray<NvraRecord>& array, const long& records, const long& attemptedRecords, const long& validRecords) {
 
     std::string outputFile;
     std::cout << "Enter output file name: ";
@@ -143,138 +153,105 @@ unsigned int sortLoop(TemplatedArray<NvraRecord>& oldArray) {
     std::cout << "Enter sort field (0-23): " << std::endl;
     std::getline(std::cin, sortFieldString);
 
-    // check whether the input is valid
-    std::regex stringCheck ("^-?\\d+");
-    if (std::regex_match(sortFieldString,stringCheck)) {
-
-        sortField = static_cast<unsigned int>(std::stoi(sortFieldString)); // convert to unsigned int
-        if (sortField <= 23) {
-            NvraComparator n(sortField);
-            Sorter<NvraRecord>::sort(oldArray, n); // sort the data by column number
-        }
+    if (parseUnsignedInput(sortFieldString, sortField) && sortField <= 23) {
+        NvraComparator n(sortField);
+        Sorter<NvraRecord>::sort(oldArray, n);
         result = sortField;
+    } else {
+        std::cout << "Invalid sort field." << std::endl;
     }
     return result;
 }
 
 // method for finding portion of data manipulation loop
-void findLoop(TemplatedArray<NvraRecord>& oldArray, HashTable<NvraRecord>* hashTable, unsigned int sortedColumn) {
+void findLoop(TemplatedArray<NvraRecord>& oldArray, HashTable<NvraRecord>& hashTable, unsigned int sortedColumn) {
+        unsigned int findField = 0;
+        std::string findFieldString;
+        std::string numberToSearch;
+        unsigned int unsignedSearchNumber = 0;
+        long long result = 0;
+        std::string stringToSearch;
+        NvraRecord searchRecord;
+        std::cout << "Enter search field (0-23): " << std::endl;
+        std::getline(std::cin, findFieldString);
 
-    unsigned int findField = 0; // column to search
-    std::string findFieldString; // string to convert to column to search
-    std::string numberToSearch; // the non-negative string value to search (after converted to number below)
-    int searchNumber = 0; // int conversion of above string
-    unsigned int unsignedSearchNumber = 0; // needed the number to be unsigned
-    long long result = 0; // resulting index or index location from binary search
-    std::string stringToSearch; // the string to search using binary search
-    NvraRecord searchRecord; // record to search for
-    std::cout << "Enter search field (0-23): " << std::endl;
-    std::getline(std::cin, findFieldString);
-
-    // used regex again to check if number
-    std::regex stringCheck ("^-?\\d+");
-    if (std::regex_match (findFieldString,stringCheck)) {
-
-        findField = static_cast<unsigned int>(std::stoi(findFieldString));
-        if (findField <= 23) {
-            NvraComparator fieldCompare(findField);
-            Sorter<NvraRecord>::sort(oldArray, fieldCompare);
+        if (!parseUnsignedInput(findFieldString, findField) || findField > 23) {
+            std::cout << "Invalid search field." << std::endl;
+            return;
         }
 
-        if (findField <= 23) {
-            unsigned int searchIndex = 0;
+        NvraComparator fieldCompare(findField);
+        Sorter<NvraRecord>::sort(oldArray, fieldCompare);
 
-            // set search index to appropriate offset value
-            if (findField > 3 && findField < 11) {
-                searchIndex = findField - 1;
-            } else if (findField > 12) {
-                searchIndex = findField - 3;
+        unsigned int searchIndex = findField;
+        if (findField > 3 && findField < 11) {
+            searchIndex = findField - 1;
+        } else if (findField > 12) {
+            searchIndex = findField - 3;
+        }
+
+        if (findField == 3 || findField == 11 || findField == 12) {
+            std::cout << "Enter exact text on which to search: " << std::endl;
+            std::getline(std::cin, stringToSearch);
+
+            const unsigned int stringIndex = findField == 3 ? 0 : (findField == 11 ? 1 : 2);
+            searchRecord.setString(stringToSearch, stringIndex);
+            NvraComparator stringFieldCompare(findField);
+            result = binarySearch(searchRecord, oldArray, stringFieldCompare);
+
+            if (result >= 0) {
+                printSearchResults(result, oldArray, stringFieldCompare);
             } else {
-                searchIndex = findField;
+                std::cout << "NVRA records found: 0" << std::endl;
             }
+            return;
+        }
 
-            // if the column is a string column
-            if (findField == 3 || findField == 11 || findField == 12) {
-                std::cout << "Enter exact text on which to search: " << std::endl;
-                std::getline(std::cin, stringToSearch);
+        std::cout << "Enter non-negative field value: " << std::endl;
+        std::getline(std::cin, numberToSearch);
+        if (!parseUnsignedInput(numberToSearch, unsignedSearchNumber)) {
+            std::cout << "Invalid non-negative field value." << std::endl;
+            return;
+        }
 
-                if (findField == 3) {
-                    searchRecord.setString(stringToSearch, 0);
-                } else if (findField == 11) {
-                    searchRecord.setString(stringToSearch, 1);
-                } else if (findField == 12) {
-                    searchRecord.setString(stringToSearch, 2);
-                }
-
-                NvraComparator stringFieldCompare(findField);
-                result = binarySearch(searchRecord, oldArray, stringFieldCompare);
-
-                if (result >= 0) { // item found, so print results
-                    printSearchResults(result, oldArray, stringFieldCompare);
-                }
-                else {
-                    std::cout << "NVRA records found: " << 0 << std::endl;
-                }
-            } else if (findField == 0) { // we are searching for record ID, so use hash
-                std::cout << "Enter non-negative field value: " << std::endl;
-                std::getline(std::cin, numberToSearch);
-                std::regex numCheck ("^-?\\d+"); // check for number validity
-                if (std::regex_match (numberToSearch,numCheck)) {
-                    searchNumber = std::stoi(numberToSearch);
-                    unsignedSearchNumber = static_cast<unsigned int>(searchNumber);
-                    searchRecord.setNum(unsignedSearchNumber, searchIndex);
-                    NvraRecord* searchRecordPointer = &searchRecord; // create record object with record ID
-
-                    NvraRecord hashResult = hashTable->find(searchRecordPointer); // find the item in the hash table
-                    std::cout << hashResult << std::endl;
-                    std::cout << "NVRA records found: " << 1 << "." << std::endl; // only one record should be found
-                }
-            } else { // if the column us a number column
-                std::cout << "Enter non-negative field value: " << std::endl;
-                std::getline(std::cin, numberToSearch);
-                std::regex numCheck ("^-?\\d+");
-                if (std::regex_match (numberToSearch,numCheck)) {
-                    searchNumber = std::stoi(numberToSearch);
-                    unsignedSearchNumber = static_cast<unsigned int>(searchNumber);
-                    if (searchNumber >= 0) {
-
-                        // set the searchRecord value at the index
-                        searchRecord.setNum(unsignedSearchNumber, searchIndex);
-
-                        NvraComparator numsFieldCompare(findField);
-
-                        // array is sorted by this particular column, so use binary search
-                        if (sortedColumn == findField) {
-                            result = binarySearch(searchRecord, oldArray, numsFieldCompare);
-                            if (result >= 0) {
-                                printSearchResults(result, oldArray, numsFieldCompare);
-                            } else {
-                                std::cout << "NVRA records found: " << 0 << std::endl;
-                            }
-                        }
-                        else { // not sorted by the column, use linear search
-                            linearSearch(oldArray, searchRecord, numsFieldCompare); // not sorted, call limear search
-                        }
-                    }
-                }
+        searchRecord.setNum(unsignedSearchNumber, searchIndex);
+        if (findField == 0) {
+            try {
+                const NvraRecord hashResult = hashTable.find(&searchRecord);
+                std::cout << hashResult << std::endl;
+                std::cout << "NVRA records found: 1." << std::endl;
+            } catch (const ExceptionHashTableAccess&) {
+                std::cout << "NVRA records found: 0" << std::endl;
             }
+            return;
+        }
+
+        NvraComparator numsFieldCompare(findField);
+        if (sortedColumn == findField) {
+            result = binarySearch(searchRecord, oldArray, numsFieldCompare);
+            if (result >= 0) {
+                printSearchResults(result, oldArray, numsFieldCompare);
+            } else {
+                std::cout << "NVRA records found: 0" << std::endl;
+            }
+        } else {
+            linearSearch(oldArray, searchRecord, numsFieldCompare);
         }
     }
-}
 
 // function to create array from AVLTree
-void createArrayFromTree(AVLTree<NvraRecord>* oldTree, TemplatedArray<NvraRecord>& array) {
+void createArrayFromTree(AVLTree<NvraRecord>& oldTree, TemplatedArray<NvraRecord>& array) {
 
     array.remove(); // delete the contents of the array
 
-    if (oldTree->getSize() == 0) { // AVLTree is empty so simply return
+    if (oldTree.getSize() == 0) { // AVLTree is empty so simply return
         return;
     }
 
     NvraRecord recordToAdd;
     NvraRecord *recordPointer;
 
-    AVLTreeEnumerator<NvraRecord> treeEnum(oldTree, AVLTreeOrder::inorder);
+    AVLTreeEnumerator<NvraRecord> treeEnum(&oldTree, AVLTreeOrder::inorder);
 
     // conduct an in order traversal of the tree and at elements to array
     while (treeEnum.hasNext()) {
@@ -286,23 +263,23 @@ void createArrayFromTree(AVLTree<NvraRecord>* oldTree, TemplatedArray<NvraRecord
 }
 
 // function to create hashTable from AVLTree
-void createHashTableFromTree(AVLTree<NvraRecord>* oldTree, HashTable<NvraRecord>* hashTable) {
-    hashTable->recreateTable(oldTree->getSize(), hashTable->getBaseCapacity()); // call method to clear hash table
+void createHashTableFromTree(AVLTree<NvraRecord>& oldTree, HashTable<NvraRecord>& hashTable) {
+    hashTable.recreateTable(oldTree.getSize(), hashTable.getBaseCapacity()); // call method to clear hash table
 
-    if (oldTree->getSize() == 0) { // tree is empty, so return
+    if (oldTree.getSize() == 0) { // tree is empty, so return
         return;
     }
 
     NvraRecord recordToAdd;
     NvraRecord *recordPointer;
 
-    AVLTreeEnumerator<NvraRecord> treeEnum(oldTree, AVLTreeOrder::inorder);
+    AVLTreeEnumerator<NvraRecord> treeEnum(&oldTree, AVLTreeOrder::inorder);
 
     // conduct an in order traversal of the tree and at elements to hashtable
     while (treeEnum.hasNext()) {
         recordToAdd = treeEnum.next();
         recordPointer = &recordToAdd;
-        hashTable->insert(recordPointer);
+        hashTable.insert(recordPointer);
     }
 }
 
@@ -310,16 +287,15 @@ void createHashTableFromTree(AVLTree<NvraRecord>* oldTree, HashTable<NvraRecord>
 void mergeOldTreeNewTree(
         std::unique_ptr<AVLTree<NvraRecord>>& oldTree,
         std::unique_ptr<AVLTree<NvraRecord>> newTree,
-        long& records) {
+        long& records,
+        NvraComparator& comparator) {
 
     records = 0;
     if (newTree->getSize() == 0) { // no elements in tree to be added, so return
         return;
     }
 
-    NvraComparator compare(0);
-    NvraComparator* comparePointer = &compare;
-    auto newNewTree = std::make_unique<AVLTree<NvraRecord>>(comparePointer);
+    auto newNewTree = std::make_unique<AVLTree<NvraRecord>>(comparator);
 
     NvraRecord oldRecord;
     NvraRecord newRecord;
@@ -335,7 +311,7 @@ void mergeOldTreeNewTree(
         oldRecord = oldTreeEnum.peek(); // need the first object without deleting
         newRecord = newTreeEnum.peek();
 
-        if (compare.compare(oldRecord, newRecord) == -1) { // oldRecord has the smaller of the two values
+        if (comparator.compare(oldRecord, newRecord) == -1) { // oldRecord has the smaller of the two values
             oldRecord = oldTreeEnum.next();
             oldRecordPointer = &oldRecord;
             if (newNewTree->insert(oldRecordPointer)) { // insert it in the tree
@@ -372,20 +348,110 @@ void mergeOldTreeNewTree(
     oldTree = std::move(newNewTree);
 }
 
+struct NvraParseError {
+    enum class Kind {
+        tooFewFields,
+        tooManyFields,
+        invalidNumber
+    };
+
+    Kind kind;
+    std::size_t column = 0;
+};
+
+std::expected<NvraRecord, NvraParseError> parseNvraRecord(std::string_view line) {
+    constexpr std::size_t fieldCount = MAX_NUMS + MAX_STRINGS;
+    std::array<std::string_view, fieldCount> fields;
+    std::size_t fieldStart = 0;
+
+    for (std::size_t column = 0; column < fieldCount; ++column) {
+        const auto delimiter = line.find(',', fieldStart);
+        if (column + 1 < fieldCount) {
+            if (delimiter == std::string_view::npos) {
+                return std::unexpected(NvraParseError{NvraParseError::Kind::tooFewFields});
+            }
+            fields[column] = line.substr(fieldStart, delimiter - fieldStart);
+            fieldStart = delimiter + 1;
+        } else {
+            if (delimiter != std::string_view::npos) {
+                return std::unexpected(NvraParseError{NvraParseError::Kind::tooManyFields});
+            }
+            fields[column] = line.substr(fieldStart);
+        }
+    }
+
+    NvraRecord record;
+    for (std::size_t column = 0; column < fieldCount; ++column) {
+        if (column == 3 || column == 11 || column == 12) {
+            record.addString(std::string(fields[column]));
+        } else {
+            unsigned int value = 0;
+            const auto [end, error] = std::from_chars(
+                fields[column].data(),
+                fields[column].data() + fields[column].size(),
+                value);
+            if (error != std::errc{} || end != fields[column].data() + fields[column].size()) {
+                return std::unexpected(
+                    NvraParseError{NvraParseError::Kind::invalidNumber, column + 1});
+            }
+            record.addNum(value);
+        }
+    }
+
+    return record;
+}
+
+template <typename Handler>
+void readNvraRecords(
+        std::istream& input,
+        long& attemptedRecords,
+        long& validRecords,
+        Handler handler) {
+    std::string line;
+    std::getline(input, line);
+
+    long lineNumber = 0;
+    while (std::getline(input, line)) {
+        ++lineNumber;
+        ++attemptedRecords;
+
+        auto parsedRecord = parseNvraRecord(line);
+        if (!parsedRecord) {
+            std::cout << "Invalid data at line " << lineNumber << ": ";
+            switch (parsedRecord.error().kind) {
+            case NvraParseError::Kind::tooFewFields:
+                std::cout << "too few fields.";
+                break;
+            case NvraParseError::Kind::tooManyFields:
+                std::cout << "too many fields.";
+                break;
+            case NvraParseError::Kind::invalidNumber:
+                std::cout << "invalid non-negative number in column "
+                          << parsedRecord.error().column << ".";
+                break;
+            }
+            std::cout << std::endl;
+            continue;
+        }
+
+        ++validRecords;
+        handler(*parsedRecord, lineNumber);
+    }
+}
+
 // function to merge file elements
 bool mergeLoop(
         std::unique_ptr<AVLTree<NvraRecord>>& oldTree,
         long& records,
         long& attemptedRecords,
         long& validRecords,
-        bool& first) {
+        bool& first,
+        NvraComparator& comparator) {
 
     bool firstFile = first;
     bool dataRead = false; // has data been read in?
     std::string requestedFile;
-    NvraComparator compare(0);
-    NvraComparator* comparePointer = &compare;
-    auto newTree = std::make_unique<AVLTree<NvraRecord>>(comparePointer);
+    auto newTree = std::make_unique<AVLTree<NvraRecord>>(comparator);
 
     std::cout << "Enter data file name: ";
 
@@ -400,80 +466,24 @@ bool mergeLoop(
         if (fileToRead.is_open()) {
 
             dataRead = true; // we have read some data, so set to true
-            //bool duplicateFound = false;
+            readNvraRecords(fileToRead, attemptedRecords, validRecords,
+                [&](const NvraRecord& record, long lineNumber) {
+                    bool isInserted;
 
-            std::string textToRead; // the text to read
-            std::getline(fileToRead, textToRead); // ignore first line
-
-            int errorLine = 0; // line number for error printing
-
-            firstLoop:while(std::getline(fileToRead, textToRead)) {
-                int columnNumber = 0;
-                errorLine++; // keeps track of error line
-                std::stringstream lineStream(textToRead);
-                NvraRecord nvraRecordKeeper; // stores the present nvraRecord
-                int nvraRecordIntCount = 1; // counts number of ints read into an nvraRecord
-                int nvraRecordStringCounter = 0; // counts number of strings read into an nvraRecord
-                int stringToIntValue = 0; // int variable that holds number value of string variable
-                unsigned int unsignedStringToInt = 0; // unsigned of above
-                unsigned int recordIdHolder = 0; // variable to hold record ID value
-                int recordIdSigned = 0;
-
-                std::getline(lineStream, textToRead, ','); // split by comma
-                recordIdSigned = std::stoi(textToRead); // save record ID for duplicate checking
-                recordIdHolder = static_cast<unsigned int>(recordIdSigned);
-                nvraRecordKeeper.addNum(recordIdHolder); // add the record ID to nums array
-                attemptedRecords++;
-
-                // split the file string
-                while (std::getline(lineStream, textToRead, ',')) {
-
-                    std::stringstream tokenStream(textToRead);
-
-                    // originally used regex here, but changed to work with zyLabs. Just used column number instead
-                    if (columnNumber == 2 || columnNumber == 10 || columnNumber == 11) {
-                        nvraRecordKeeper.addString(textToRead);
-                        nvraRecordStringCounter++; // increase string counter
-                        columnNumber++; // increase column number
-                    } else {
-                        tokenStream >> stringToIntValue;
-
-                        if (stringToIntValue < 0) {
-                            // negative number found, print error message!
-                            std::cout << "Invalid data at line " << errorLine << "." << std::endl;
-                            goto firstLoop; // the dreaded goto statement to go back to beginning of loop
-                        } else {
-                            // add the number to nums[] array
-                            unsignedStringToInt = static_cast<unsigned int>(stringToIntValue);
-                            nvraRecordKeeper.addNum(unsignedStringToInt); // add the number to the nums[]
-                            nvraRecordIntCount++; // increase nums counter
-                            columnNumber++; // increase the column number
+                    if (firstFile) {
+                        isInserted = oldTree->insert(&record);
+                        if (isInserted) {
+                            records++;
                         }
+                    } else {
+                        isInserted = newTree->insert(&record);
                     }
-                }
-                validRecords++;
 
-                NvraRecord *temp = &nvraRecordKeeper;
-
-                bool isInserted;
-
-                // if this is the first file, simply add the elements to the old AVLTree
-                if (firstFile) {
-                    isInserted = oldTree->insert(temp);
-
-                    if (isInserted) {
-                        records++;
+                    if (!isInserted) {
+                        std::cout << "Duplicate record ID " << record.getNum(0)
+                                  << " at line " << lineNumber << "." << std::endl;
                     }
-                } else { // if we are merging new data, store in new AVLTree
-                    isInserted = newTree->insert(temp);
-                }
-
-                if (!isInserted) {
-                    // duplicate found, print error message
-                    std::cout << "Duplicate record ID " << recordIdHolder << " at line " << errorLine << "." << std::endl;
-                    //records--; // reduce record by one since a duplicate was found
-                }
-            }
+                });
         } else { // file is not available
             std::cout << "File is not available." << std::endl;
             std::cout << "Enter data file name: ";
@@ -482,7 +492,7 @@ bool mergeLoop(
         fileToRead.close();
 
         if (!firstFile) {
-            mergeOldTreeNewTree(oldTree, std::move(newTree), records); // new data, so call merge trees method
+            mergeOldTreeNewTree(oldTree, std::move(newTree), records, comparator); // new data, so call merge trees method
         }
 
         return dataRead; // return whether data has been read
@@ -491,11 +501,11 @@ bool mergeLoop(
 }
 
 void purgeOldTree(
-        AVLTree<NvraRecord>* oldTree,
+        AVLTree<NvraRecord>& oldTree,
         std::unique_ptr<AVLTree<NvraRecord>> newTree,
         long& records) {
 
-    if (oldTree->getSize() == 0 || newTree->getSize() == 0) { // if new tree is empty, nothing to purge
+    if (oldTree.getSize() == 0 || newTree->getSize() == 0) { // if new tree is empty, nothing to purge
         return;
     }
 
@@ -509,7 +519,7 @@ void purgeOldTree(
         recordToRemove = newTreeEnum.next();
         recordPointer = &recordToRemove;
 
-        itemRemoved = oldTree->remove(recordPointer); // check whether item was removed
+        itemRemoved = oldTree.remove(recordPointer); // check whether item was removed
 
         if (itemRemoved) { // if it was removed, decrement records variable
             records--;
@@ -517,6 +527,8 @@ void purgeOldTree(
     }
 }
 
+#if 0
+// Original purge parser retained for comparison with the shared parser.
 //function purge data from tree
 void purgeLoop(
         AVLTree<NvraRecord>* oldTree,
@@ -525,8 +537,7 @@ void purgeLoop(
         long& validRecords) {
 
     NvraComparator compare(0);
-    NvraComparator* comparePointer = &compare;
-    auto newTree = std::make_unique<AVLTree<NvraRecord>>(comparePointer);
+    auto newTree = std::make_unique<AVLTree<NvraRecord>>(compare);
     std::string requestedFile;
     std::cout << "Enter data file name: ";
 
@@ -606,15 +617,47 @@ void purgeLoop(
         return;
     }
 }
+#endif
+
+void purgeLoop(
+        AVLTree<NvraRecord>& oldTree,
+        long& records,
+        long& attemptedRecords,
+        long& validRecords) {
+
+    NvraComparator compare(0);
+    auto newTree = std::make_unique<AVLTree<NvraRecord>>(compare);
+    std::string requestedFile;
+    std::cout << "Enter data file name: ";
+
+    while (std::getline(std::cin, requestedFile)) {
+        if (requestedFile.empty()) {
+            break;
+        }
+
+        std::ifstream fileToRead(requestedFile);
+        if (!fileToRead.is_open()) {
+            std::cout << "File is not available." << std::endl;
+            std::cout << "Enter data file name: ";
+            continue;
+        }
+
+        readNvraRecords(fileToRead, attemptedRecords, validRecords,
+            [&](const NvraRecord& record, long) {
+                newTree->insert(&record);
+            });
+
+        purgeOldTree(oldTree, std::move(newTree), records);
+        return;
+    }
+}
 
 int main() {
 
     NvraComparator compare(0); // compare according to the record ID
-    NvraComparator* comparePointer = &compare; // pointer to comparator
     TemplatedArray<NvraRecord> oldNvraArray; // array to store data for searching and sorting
-    auto avl = std::make_unique<AVLTree<NvraRecord>>(comparePointer); // tree to hold the record IDs
+    auto avl = std::make_unique<AVLTree<NvraRecord>>(compare); // tree to hold the record IDs
     NvraHasher nhash; // hash
-    NvraHasher* hashPointer = &nhash;// pointer to hash
 
     long nvraRecordCounter = 0; // keeps track of the nvra records on memory
     long attemptedNvraRecords = 0; // records that the program tried to read
@@ -623,11 +666,11 @@ int main() {
     try {
 
         bool isFirst = true; // is this the first file read in?
-        bool dataRead = mergeLoop(avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords, isFirst);
-        createArrayFromTree(avl.get(), oldNvraArray); // create an array from the tree
+        bool dataRead = mergeLoop(avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords, isFirst, compare);
+        createArrayFromTree(*avl, oldNvraArray); // create an array from the tree
 
-        auto tableHash = std::make_unique<HashTable<NvraRecord>>(comparePointer, hashPointer, avl->getSize()); // hash table to hold IDs for searching records
-        createHashTableFromTree(avl.get(), tableHash.get()); // create a hash table from the tree
+        auto tableHash = std::make_unique<HashTable<NvraRecord>>(compare, nhash, avl->getSize()); // hash table to hold IDs for searching records
+        createHashTableFromTree(*avl, *tableHash); // create a hash table from the tree
 
         if (!dataRead) { // data has not been read in, so exit
             return 0;
@@ -649,20 +692,20 @@ int main() {
 
                 } else if (answer == "f") { // find by a column value
 
-                    findLoop(oldNvraArray, tableHash.get(), columnSorted); // call find method
+                    findLoop(oldNvraArray, *tableHash, columnSorted); // call find method
 
                 } else if (answer == "m") { // merge old file with new file
 
                     bool isSecond = false; // first file has already been read
-                    mergeLoop(avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords, isSecond); // call merge method
-                    createArrayFromTree(avl.get(), oldNvraArray);
-                    createHashTableFromTree(avl.get(), tableHash.get());
+                    mergeLoop(avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords, isSecond, compare); // call merge method
+                    createArrayFromTree(*avl, oldNvraArray);
+                    createHashTableFromTree(*avl, *tableHash);
 
                 } else if (answer == "p") { // purge a file from the data
 
-                    purgeLoop(avl.get(), nvraRecordCounter, attemptedNvraRecords, validNvraRecords); // call purge method
-                    createArrayFromTree(avl.get(), oldNvraArray);
-                    createHashTableFromTree(avl.get(), tableHash.get());
+                    purgeLoop(*avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords); // call purge method
+                    createArrayFromTree(*avl, oldNvraArray);
+                    createHashTableFromTree(*avl, *tableHash);
 
                 } else if (answer == "h") { // print hash table
 

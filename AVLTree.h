@@ -2,8 +2,8 @@
 #define AVL_TREE
 
 #include "Comparator.h"
-#include <cstdlib>
 #include "Exceptions.h"
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -12,7 +12,7 @@ class AVLTree {
     template <typename U>
     friend class AVLTreeEnumerator;
 private:
-    Comparator<T>* comparator = nullptr;				// used to determine tree order and item equality
+    std::reference_wrapper<Comparator<T>> comparator;	// used to determine tree order and item equality
     unsigned long size = 0; 						// actual number of items currently in tree
     std::unique_ptr<T> data;							// owned data at this node
     int diff = 0;									// height of right minus height of left
@@ -25,7 +25,7 @@ private:
     void rebalance();								// check for and re-balance this node, if needed
 
 public:
-    explicit AVLTree(Comparator<T>* comparator);	// creates empty linked tree with comparator
+    explicit AVLTree(Comparator<T>& comparator);	// creates empty linked tree with comparator
     AVLTree(const AVLTree& other);
     AVLTree& operator=(const AVLTree& other);
     AVLTree(AVLTree&& other) noexcept = default;
@@ -54,8 +54,8 @@ public:
 };
 
 template<typename T>
-AVLTree<T>::AVLTree(Comparator<T>* comparator) {
-    this->comparator = comparator;
+AVLTree<T>::AVLTree(Comparator<T>& comparator)
+    : comparator(comparator) {
 }
 
 template<typename T>
@@ -95,9 +95,9 @@ bool AVLTree<T>::insert(const T* item) { // todo: need to check for available me
         data = std::make_unique<T>(*item); // create new item
         result = true; // return true
     } else {
-        if (comparator->compare(*item, *data) < 0) { // item is less than data, so attempt to insert in left tree
+        if (comparator.get().compare(*item, *data) < 0) { // item is less than data, so attempt to insert in left tree
             if (left == nullptr) { // no left tree yet, so create it and add the element
-                left = std::make_unique<AVLTree<T>>(comparator);
+                left = std::make_unique<AVLTree<T>>(comparator.get());
                 left->data = std::make_unique<T>(*item);
                 result = true;
                 diff--; // decrease diff
@@ -113,9 +113,9 @@ bool AVLTree<T>::insert(const T* item) { // todo: need to check for available me
                     }
                 }
             }
-        } else if (comparator->compare(*item, *data) > 0) { // item is greater than item stored at data, so attempt to insert in right tree
+        } else if (comparator.get().compare(*item, *data) > 0) { // item is greater than item stored at data, so attempt to insert in right tree
             if (right == nullptr) { // no right tree yet, create it and insert the item
-                right = std::make_unique<AVLTree<T>>(comparator);
+                right = std::make_unique<AVLTree<T>>(comparator.get());
                 right->data = std::make_unique<T>(*item);
                 result = true;
                 diff++;
@@ -148,11 +148,11 @@ template<typename T>
 bool AVLTree<T>::replace(const T* item) {
 
     bool result = false;
-    if (comparator->compare(*item, *data) == 0) { // item to replace is equal to data, so replace it
+    if (comparator.get().compare(*item, *data) == 0) { // item to replace is equal to data, so replace it
         data = std::make_unique<T>(*item);
         result = true;
     } else {
-        if (comparator->compare(*item, *data) < 0) { // item is less than data, so call replace on left
+        if (comparator.get().compare(*item, *data) < 0) { // item is less than data, so call replace on left
             if (left == nullptr) { // left is nullptr, so no greater item
                 result = false;
             }
@@ -162,7 +162,7 @@ bool AVLTree<T>::replace(const T* item) {
                     result = true;
                 }
             }
-        } else if (comparator->compare(*item, *data) > 0) { // item is greater than data, so same drill as above
+        } else if (comparator.get().compare(*item, *data) > 0) { // item is greater than data, so same drill as above
             if (right == nullptr) {
                 result = false;
             } else {
@@ -185,7 +185,7 @@ bool AVLTree<T>::remove(const T* item) {
         return false;
     }
 
-    if (comparator->compare(*item, *data) == 0) { // item is equal to data
+    if (comparator.get().compare(*item, *data) == 0) { // item is equal to data
         if (left == nullptr && right == nullptr) { // if left and right are both nullptr, set data to nullptr
             data.reset();
             result = true;
@@ -275,7 +275,7 @@ bool AVLTree<T>::remove(const T* item) {
                 }
             }
         }
-    } else if (comparator->compare(*item, *data) < 0) { // the item is less than data so call remove on left subtree
+    } else if (comparator.get().compare(*item, *data) < 0) { // the item is less than data so call remove on left subtree
         if (left != nullptr) {
             int leftDiff = left->diff; // keep track of diff
             bool leftResult = left->remove(item); // call remove on left subtree
@@ -294,7 +294,7 @@ bool AVLTree<T>::remove(const T* item) {
             }
         }
 
-    } else if (comparator->compare(*item, *data) > 0) { // if item is greater than data, need to call remove on right subtree
+    } else if (comparator.get().compare(*item, *data) > 0) { // if item is greater than data, need to call remove on right subtree
 
         if (right != nullptr) {
             int rightDiff = right->diff; // keep track of changes in diff
@@ -332,10 +332,10 @@ T AVLTree<T>::find(const T* item) const {
 
     T result;
 
-    if (comparator->compare(*item, *data) == 0) { // item is equal to data so return the item
+    if (comparator.get().compare(*item, *data) == 0) { // item is equal to data so return the item
         result = *data;
     }
-    else if (comparator->compare(*item, *data) < 0) { // item is less than data, so call find on left subtree
+    else if (comparator.get().compare(*item, *data) < 0) { // item is less than data, so call find on left subtree
             if (left == nullptr) { // left is nullptr, so throw exception
                 throw ExceptionAVLTreeAccess{};
             } else {

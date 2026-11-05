@@ -66,7 +66,7 @@ public:
     bool hasNext() const override;
     T next() override;						// throws ExceptionEnumerationBeyondEnd if no next item is available
     T peek() const override;					// throws ExceptionEnumerationBeyondEnd if no next item is available
-    AVLTreeOrder getOrder();		// returns the order of this enumerator (preorder, inorder, or postorder)
+    AVLTreeOrder getOrder() const;		// returns the order of this enumerator (preorder, inorder, or postorder)
 };
 
 template <typename T>
@@ -102,7 +102,7 @@ T AVLTreeEnumerator<T>::peek() const {
 }
 
 template <typename T>
-AVLTreeOrder AVLTreeEnumerator<T>::getOrder() {
+AVLTreeOrder AVLTreeEnumerator<T>::getOrder() const {
     return order; // return the order of this AVLTreeEnumerator
 }
 

@@ -52,6 +52,8 @@ private:
     }
 
 public:
+    using iterator = Type*;
+    using const_iterator = const Type*;
 
     // constructs array with default capacity
     TemplatedArray() {
@@ -123,7 +125,7 @@ public:
     }
 
     // adds record, increments size, doubles capacity as necessary
-    void add(Type* record) {
+    void add(const Type* record) {
 
         if (size == capacity) {
             doubleCapacity();
@@ -134,7 +136,7 @@ public:
     }
 
     // adds record at specified index, increments size, doubles capacity as necessary
-    void addAt(Type* toAdd, unsigned long index) {
+    void addAt(const Type* toAdd, unsigned long index) {
 
         // invalid index; throw exception
         if (index > size) {
@@ -165,7 +167,7 @@ public:
     }
 
     // replaces record at specified index
-    void replaceAt(Type* toReplace, unsigned long index) {
+    void replaceAt(const Type* toReplace, unsigned long index) {
 
         // invalid index; throw exception
         if (index >= size) {
@@ -248,6 +250,30 @@ public:
     //returns the size of the array
     unsigned long getSize() const {
         return size;
+    }
+
+    iterator begin() noexcept {
+        return data.get();
+    }
+
+    const_iterator begin() const noexcept {
+        return data.get();
+    }
+
+    const_iterator cbegin() const noexcept {
+        return data.get();
+    }
+
+    iterator end() noexcept {
+        return size == 0 ? data.get() : data.get() + size;
+    }
+
+    const_iterator end() const noexcept {
+        return size == 0 ? data.get() : data.get() + size;
+    }
+
+    const_iterator cend() const noexcept {
+        return size == 0 ? data.get() : data.get() + size;
     }
 
     // overloaded index operator

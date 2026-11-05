@@ -21,17 +21,17 @@ class OULinkedList {
     friend class OULinkedListEnumerator;
 
 private:
-    Comparator<T>* comparator = nullptr;				// used to determine list order and item equality
+    Comparator<T>& comparator;						// used to determine list order and item equality
     unsigned long size = 0;							// actual number of items currently in list
     std::unique_ptr<OULink<T>> first;					// owns the first link and its chain
     OULink<T>* last = nullptr;						// non-owning pointer to the last link
-    bool DuplicateCheck(T* item);                   // private helper method to check for duplictates
+    bool DuplicateCheck(const T* item);                   // private helper method to check for duplictates
 public:
-    explicit OULinkedList(Comparator<T>* comparator);		// creates empty linked list with comparator
+    explicit OULinkedList(Comparator<T>& comparator);		// creates empty linked list with comparator
     virtual ~OULinkedList() = default;
 
     // method to print contents of LinkedList
-    void PrintLinkedList(const long& records, const long& attemptedRecords, const long& validRecords);
+    void PrintLinkedList(const long& records, const long& attemptedRecords, const long& validRecords) const;
 
     // if an equivalent item is not already present, insert item in order and return true
     // if an equivalent item is already present, leave list unchanged and return false
@@ -54,7 +54,7 @@ public:
     // if no items are present, throw ExceptionLinkedListAccess
     T get() const;
 
-    OULink<T>* getFirstLink();
+    const OULink<T>* getFirstLink() const;
 
     // if an equivalent item is present, return a copy of the first such item
     // if an equivalent item is not present, throw ExceptionLinkedListAccess
@@ -68,7 +68,7 @@ public:
     OULinkedListEnumerator<T> enumerator() const;
 };
 template <typename T>
-void OULinkedList<T>::PrintLinkedList(const long& records, const long& attemptedRecords, const long& validRecords) {
+void OULinkedList<T>::PrintLinkedList(const long& records, const long& attemptedRecords, const long& validRecords) const {
 
     std::string outputFile;
     std::cout << "Enter output file name: ";
@@ -107,17 +107,17 @@ void OULinkedList<T>::PrintLinkedList(const long& records, const long& attempted
 }
 
 template <typename T>
-OULinkedList<T>::OULinkedList(Comparator<T>* comparator) {
-    this->comparator = comparator;
+OULinkedList<T>::OULinkedList(Comparator<T>& comparator)
+    : comparator(comparator) {
 }
 
 template <typename T>
-bool OULinkedList<T>::DuplicateCheck(T* item) {
-    OULink<T>* current = first.get();
+bool OULinkedList<T>::DuplicateCheck(const T* item) {
+    const OULink<T>* current = first.get();
     unsigned int index = 0;
 
     while (index < size) {
-        if (comparator->compare(*current->data, *item) == 0) {
+        if (comparator.compare(*current->data, *item) == 0) {
             return true;
         }
         current = current->next.get();
@@ -145,7 +145,7 @@ bool OULinkedList<T>::insert(const T* item) {
         return true;
     }
     // insert at beginning and set next
-    else if (comparator->compare(*listItem->data, *first->data) < 0) {
+    else if (comparator.compare(*listItem->data, *first->data) < 0) {
         listItem->next = std::move(first);
         first = std::move(listItem);
         //last = first;
@@ -164,7 +164,7 @@ bool OULinkedList<T>::insert(const T* item) {
 
         while (currentItem != nullptr) {
 
-            if (comparator->compare(*currentItem->data, *listItem->data) > 0) {
+            if (comparator.compare(*currentItem->data, *listItem->data) > 0) {
                 listItem->next = std::move(previousItem->next);
                 previousItem->next = std::move(listItem);
                 size++;
@@ -206,7 +206,7 @@ bool OULinkedList<T>::append(const T* item) {
         return true;
     }
     // check if item is greater than the data held by last
-    else if (comparator->compare(*item, *last->data) > 0) {
+    else if (comparator.compare(*item, *last->data) > 0) {
         last->next = std::move(listItem);
         last = last->next.get();
         size++;
@@ -225,7 +225,7 @@ bool OULinkedList<T>::replace(const T* item) {
         return false;
     }
     // first item is identical to item argument passed in
-    else if (comparator->compare(*item, *first->data) == 0) {
+    else if (comparator.compare(*item, *first->data) == 0) {
         *first->data = *item;
         return true;
     }
@@ -236,7 +236,7 @@ bool OULinkedList<T>::replace(const T* item) {
 
         while (currentItem != nullptr) {
 
-            if (comparator->compare(*currentItem->data, *item) == 0) {
+            if (comparator.compare(*currentItem->data, *item) == 0) {
                 *currentItem->data = *item;
 
                 return true;
@@ -255,7 +255,7 @@ bool OULinkedList<T>::remove(const T* item) {
         return false;
     }
     // item is identical with data held by first, so delete first
-    else if (comparator->compare(*item, *first->data) == 0) {
+    else if (comparator.compare(*item, *first->data) == 0) {
         auto removedItem = std::move(first);
         first = std::move(removedItem->next);
         size--;
@@ -272,7 +272,7 @@ bool OULinkedList<T>::remove(const T* item) {
 
         while (currentItem != nullptr) {
 
-            if (comparator->compare(*currentItem->data, *item) == 0) {
+            if (comparator.compare(*currentItem->data, *item) == 0) {
                     auto removedItem = std::move(previousItem->next);
                     previousItem->next = std::move(removedItem->next);
 
@@ -304,7 +304,7 @@ T OULinkedList<T>::get() const {
 }
 
 template<typename T>
-OULink<T>* OULinkedList<T>::getFirstLink() {
+const OULink<T>* OULinkedList<T>::getFirstLink() const {
 
     if (!first) {
         throw ExceptionLinkedListAccess{};
@@ -322,16 +322,16 @@ T OULinkedList<T>::find(const T* item) const {
         throw ExceptionLinkedListAccess{};
     }
     // first data is identical to item, so return item
-    else if (comparator->compare(*item, *first->data) == 0) {
+    else if (comparator.compare(*item, *first->data) == 0) {
         foundItem = *item;
     }
     else {
         // check the rest of the list
-        OULink<T> *currentItem = first.get();
+        const OULink<T> *currentItem = first.get();
 
         while (currentItem != nullptr) {
 
-            if (comparator->compare(*currentItem->data, *item) == 0) {
+            if (comparator.compare(*currentItem->data, *item) == 0) {
                 return *currentItem->data;
             }
             currentItem = currentItem->next.get();

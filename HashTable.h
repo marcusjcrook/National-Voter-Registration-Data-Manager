@@ -27,8 +27,8 @@ class HashTable {
     template <typename>
     friend class HashTableEnumerator;						// necessary to allow the enumerator to access the table's private data
 private:
-    Comparator<T>* comparator = nullptr;					// used to determine item equality
-    Hasher<T>* hasher = nullptr;							// used to compute hash value
+    Comparator<T>& comparator;						// used to determine item equality
+    Hasher<T>& hasher;							// used to compute hash value
     unsigned long size = 0;									// actual number of items currently in hash table
     float maxLoadFactor = DEFAULT_MAX_LOAD_FACTOR;			// the load factor used to determine when to increase the table size
     float minLoadFactor = DEFAULT_MIN_LOAD_FACTOR;			// the load factor used to determine when to decrease the table size
@@ -120,23 +120,23 @@ private:
         totalCapacity = SCHEDULE[index]; // set total capacity
     }
 public:
-    HashTable(Comparator<T>* comparator, Hasher<T>* hasher);			// creates an empty table of DEFAULT_BASE_CAPACITY
+    HashTable(Comparator<T>& comparator, Hasher<T>& hasher);			// creates an empty table of DEFAULT_BASE_CAPACITY
     // if size given, creates empty table with size from schedule of sufficient capacity (considering maxLoadFactor)
-    HashTable(Comparator<T>* comparator, Hasher<T>* hasher, unsigned long size, float maxLoadFactor = DEFAULT_MAX_LOAD_FACTOR, float minLoadFactor = DEFAULT_MIN_LOAD_FACTOR);
+    HashTable(Comparator<T>& comparator, Hasher<T>& hasher, unsigned long size, float maxLoadFactor = DEFAULT_MAX_LOAD_FACTOR, float minLoadFactor = DEFAULT_MIN_LOAD_FACTOR);
     virtual ~HashTable() = default;
-    void displayHashTable(const long& records, const long& attemptedRecords, const long& validRecords);
+    void displayHashTable(const long& records, const long& attemptedRecords, const long& validRecords) const;
 
     // if an equivalent item is not already present, insert item at proper location and return true
     // if an equivalent item is already present, leave table unchanged and return false
-    bool insert(T* item);
+    bool insert(const T* item);
 
     // if an equivalent item is already present, replace item and return true
     // if an equivalent item is not already present, leave table unchanged and return false
-    bool replace(T* item);
+    bool replace(const T* item);
 
     // if an equivalent item is already present, remove item and return true
     // if an equivalent item is not already present, leave table unchanged and return false
-    bool remove(T* item);
+    bool remove(const T* item);
 
     // if an equivalent item is present, return a copy of the item
     // if an equivalent item is not present, throw ExceptionHashTableAccess
@@ -151,9 +151,8 @@ public:
 };
 
 template <typename T>
-HashTable<T>::HashTable(Comparator<T>* comparator, Hasher<T>* hasher) {
-    this->comparator = comparator;
-    this->hasher = hasher;
+HashTable<T>::HashTable(Comparator<T>& comparator, Hasher<T>& hasher)
+    : comparator(comparator), hasher(hasher) {
     table.resize(DEFAULT_BASE_CAPACITY);
     for (unsigned long index = 0; index < DEFAULT_BASE_CAPACITY; ++index) { // initiliaze the linked lists
         table[index] = std::make_unique<OULinkedList<T>>(comparator);
@@ -161,9 +160,8 @@ HashTable<T>::HashTable(Comparator<T>* comparator, Hasher<T>* hasher) {
 }
 
 template <typename T>
-HashTable<T>::HashTable(Comparator<T>* comparator, Hasher<T>* hasher, unsigned long size, float maxLoadFactor, float minLoadFactor) {
-    this->comparator = comparator;
-    this->hasher = hasher;
+HashTable<T>::HashTable(Comparator<T>& comparator, Hasher<T>& hasher, unsigned long size, float maxLoadFactor, float minLoadFactor)
+    : comparator(comparator), hasher(hasher) {
     this->maxLoadFactor = maxLoadFactor;
     this->minLoadFactor = minLoadFactor;
     hashTableInitialize(size);
@@ -171,7 +169,7 @@ HashTable<T>::HashTable(Comparator<T>* comparator, Hasher<T>* hasher, unsigned l
 
 // method to print the table
 template <typename T>
-void HashTable<T>::displayHashTable(const long& records, const long& attemptedRecords, const long& validRecords) {
+void HashTable<T>::displayHashTable(const long& records, const long& attemptedRecords, const long& validRecords) const {
 
     std::string outputFile;
     std::cout << "Enter output file name: ";
@@ -256,7 +254,7 @@ void HashTable<T>::recreateTable(unsigned long newSize, unsigned long) {
 }
 
 template <typename T>
-bool HashTable<T>::insert(T* item) {
+bool HashTable<T>::insert(const T* item) {
 
     if (getLoadFactor() >= maxLoadFactor) { // determine if resize needed
         increaseCapacity();
@@ -278,7 +276,7 @@ bool HashTable<T>::insert(T* item) {
 }
 
 template <typename T>
-bool HashTable<T>::replace(T *item) {
+bool HashTable<T>::replace(const T* item) {
 
     unsigned long index;
     index = getBucketNumber(item);
@@ -288,7 +286,7 @@ bool HashTable<T>::replace(T *item) {
 }
 
 template <typename T>
-bool HashTable<T>::remove(T *item) {
+bool HashTable<T>::remove(const T* item) {
 
     if (getLoadFactor() <= minLoadFactor) { // check if needs resize
         decreaseCapacity();
@@ -322,7 +320,7 @@ T HashTable<T>::find(const T* item) const {
 
     while (listEnum.hasNext()) { // determine if the item is in the bucket
         result = listEnum.next();
-        if (comparator->compare(*item, result) == 0) {
+        if (comparator.compare(*item, result) == 0) {
             found = true;
             break;
         }
@@ -357,7 +355,7 @@ float HashTable<T>::getLoadFactor() const {
 
 template <typename T>
 unsigned long HashTable<T>::getBucketNumber(const T* item) const {
-    return hasher->hash(*item) % baseCapacity;
+    return hasher.hash(*item) % baseCapacity;
 }
 
 #endif // !HASH_TABLE

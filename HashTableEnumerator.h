@@ -13,12 +13,12 @@ class HashTableEnumerator : public Enumerator<T>
 private:
     unsigned long bucket = 0;                               // the current bucket during the enumeration process
     OULinkedListEnumerator<T> chainEnumerator{};			// used to move through the linked list of the current bucket
-    HashTable<T>* hashTable = nullptr;						    // pointer to the HashTable being enumerated
+    const HashTable<T>* hashTable = nullptr;						    // pointer to the HashTable being enumerated
     bool empty = false;
     T result;
 
 public:
-    explicit HashTableEnumerator(HashTable<T>* hashTable);	// constructor needs a pointer to the HashTable to be enumerated
+    explicit HashTableEnumerator(const HashTable<T>* hashTable);	// constructor needs a pointer to the HashTable to be enumerated
     virtual ~HashTableEnumerator() = default;
     bool hasNext() const override;							// true if there are elements that have not yet been returned via next()
     T next() override;										// throws ExceptionEnumerationBeyondEnd if no next item is available
@@ -26,7 +26,7 @@ public:
 };
 
 template <typename T>
-HashTableEnumerator<T>::HashTableEnumerator(HashTable<T>* hashTable) {
+HashTableEnumerator<T>::HashTableEnumerator(const HashTable<T>* hashTable) {
 
     if(hashTable == nullptr || hashTable->getSize() == 0) { // hash table is in invalid state to enumerate, so throw exception
         throw ExceptionHashTableAccess{};

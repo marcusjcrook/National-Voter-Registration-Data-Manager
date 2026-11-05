@@ -1,14 +1,13 @@
 #ifndef SORT_H
 #define SORT_H
 
-#include <cstdlib>
-#include <iostream>
 #include <algorithm>
-#include <utility>
-#include "Exceptions.h"
 #include "TemplatedArray.h"
 #include "Comparator.h"
 
+// Original hand-written quicksort, retained for comparison; the ranges-based
+// implementation below is the one currently used.
+#if 0
 template <typename T>
 class Sorter {
 private:
@@ -22,19 +21,19 @@ public:
 template <typename T>
 void Sorter<T>::qsort(TemplatedArray<T>& arr, long leftIndex, long rightIndex, const Comparator<T>& comparator) {
 
-   long left;
-   long right;
-   T pivot;
+    long left;
+    long right;
+    T pivot;
 
-   if (leftIndex >= rightIndex)  {
-       return;
-   }
+    if (leftIndex >= rightIndex)  {
+        return;
+    }
 
-   left = leftIndex;
-   right = rightIndex;
+    left = leftIndex;
+    right = rightIndex;
 
-   // set the pivot to the middle element
-   pivot = arr[(leftIndex + rightIndex) / 2];
+    // set the pivot to the middle element
+    pivot = arr[(leftIndex + rightIndex) / 2];
 
     while(left <= right) {
 
@@ -54,8 +53,8 @@ void Sorter<T>::qsort(TemplatedArray<T>& arr, long leftIndex, long rightIndex, c
             T leftItem = arr[unsignedLeft];
             T rightItem = arr[unsignedRight];
 
-            T &leftValue = leftItem;
-            T &rightValue = rightItem;
+            T& leftValue = leftItem;
+            T& rightValue = rightItem;
 
             arr.replaceAt(&leftValue, unsignedRight);
             arr.replaceAt(&rightValue, unsignedLeft);
@@ -66,15 +65,28 @@ void Sorter<T>::qsort(TemplatedArray<T>& arr, long leftIndex, long rightIndex, c
     }
 
     // recursive call to qsort
-    qsort(arr,leftIndex,right, comparator);
-    qsort(arr,left,rightIndex, comparator);
+    qsort(arr, leftIndex, right, comparator);
+    qsort(arr, left, rightIndex, comparator);
 }
-
 
 template <typename T>
 void Sorter<T>::sort(TemplatedArray<T>& array, const Comparator<T>& comparator) {
-    // call private helper quick sort method
-    qsort(array, 0, array.getSize()-1, comparator);
+    // call private quick sort method
+    qsort(array, 0, array.getSize() - 1, comparator);
+}
+#endif
+
+template <typename T>
+class Sorter {
+public:
+    static void sort(TemplatedArray<T>& array, const Comparator<T>& comparator);
+};
+
+template <typename T>
+void Sorter<T>::sort(TemplatedArray<T>& array, const Comparator<T>& comparator) {
+    std::ranges::sort(array, [&comparator](const T& left, const T& right) {
+        return comparator.compare(left, right) < 0;
+    });
 }
 
 #endif
