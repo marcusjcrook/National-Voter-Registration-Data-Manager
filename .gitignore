@@ -1,0 +1,18 @@
+# MSVC build artifacts
+*.obj
+*.pdb
+*.ilk
+*.pch
+*.idb
+*.ipch
+*.exe
+
+# CMake build output
+/build/
+/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Visual Studio user files
+.vs/

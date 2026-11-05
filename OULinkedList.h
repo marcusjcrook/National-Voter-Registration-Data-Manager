@@ -4,7 +4,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <memory>
+#include <new>
 #include <string>
+#include <utility>
 #include "OULink.h"
 #include "Comparator.h"
 #include "OULinkedListEnumerator.h"
@@ -20,12 +23,12 @@ class OULinkedList {
 private:
     Comparator<T>* comparator = nullptr;				// used to determine list order and item equality
     unsigned long size = 0;							// actual number of items currently in list
-    OULink<T>* first = nullptr;						// pointer to first link in list
-    OULink<T>* last = nullptr;							// pointer to last link in list
+    std::unique_ptr<OULink<T>> first;					// owns the first link and its chain
+    OULink<T>* last = nullptr;						// non-owning pointer to the last link
     bool DuplicateCheck(T* item);                   // private helper method to check for duplictates
 public:
     explicit OULinkedList(Comparator<T>* comparator);		// creates empty linked list with comparator
-    virtual ~OULinkedList();						// deletes all links and their data items
+    virtual ~OULinkedList() = default;
 
     // method to print contents of LinkedList
     void PrintLinkedList(const long& records, const long& attemptedRecords, const long& validRecords);
@@ -48,13 +51,13 @@ public:
     bool remove(const T* item);
 
     // if any items are present, return a copy of the first item
-    // if no items are present, throw new ExceptionLinkedListAccess
+    // if no items are present, throw ExceptionLinkedListAccess
     T get() const;
 
     OULink<T>* getFirstLink();
 
     // if an equivalent item is present, return a copy of the first such item
-    // if an equivalent item is not present, throw a new ExceptionLinkedListAccess
+    // if an equivalent item is not present, throw ExceptionLinkedListAccess
     T find(const T* item) const;
     // linear search
 
@@ -72,11 +75,11 @@ void OULinkedList<T>::PrintLinkedList(const long& records, const long& attempted
     getline(std::cin, outputFile);
 
     if (outputFile.empty()) {
-        auto current = first;
+        auto current = first.get();
         unsigned int index = 0;
         while (index < size) {
             std::cout << *current->data << std::endl;
-            current = current->next;
+            current = current->next.get();
             ++index;
         }
     }
@@ -85,11 +88,11 @@ void OULinkedList<T>::PrintLinkedList(const long& records, const long& attempted
         fileToWrite.open(outputFile);
 
         if (fileToWrite.is_open()) {
-            auto current = first;
+            auto current = first.get();
             unsigned int index = 0;
             while (index < size) {
                 fileToWrite << *current->data << std::endl;
-                current = current->next;
+                current = current->next.get();
                 ++index;
             }
             fileToWrite << "Data lines read: " << attemptedRecords <<
@@ -109,24 +112,15 @@ OULinkedList<T>::OULinkedList(Comparator<T>* comparator) {
 }
 
 template <typename T>
-OULinkedList<T>::~OULinkedList() {
-    this->comparator = nullptr;
-    if (first != nullptr) {
-        delete first;
-        first = nullptr;
-    }
-}
-
-template <typename T>
 bool OULinkedList<T>::DuplicateCheck(T* item) {
-    OULink<T>* current = first;
+    OULink<T>* current = first.get();
     unsigned int index = 0;
 
     while (index < size) {
         if (comparator->compare(*current->data, *item) == 0) {
             return true;
         }
-        current = current->next;
+        current = current->next.get();
         index++;
     }
     return false;
@@ -135,59 +129,58 @@ bool OULinkedList<T>::DuplicateCheck(T* item) {
 template <typename T>
 bool OULinkedList<T>::insert(const T* item) {
 
-    T* data = new (std::nothrow) T(*item);
+    auto listItem = std::unique_ptr<OULink<T>>(new (std::nothrow) OULink<T>(item));
     bool isInserted = false;
-    auto* listItem = new (std::nothrow) OULink<T>(data);
 
-    if (data == nullptr || listItem == nullptr) {
-        throw new ExceptionMemoryNotAvailable();
+    if (!listItem) {
+        throw ExceptionMemoryNotAvailable{};
     }
 
     // insert at beginning
-    if (first == nullptr) {
+    if (!first) {
 
-        first = listItem;
-        last = first;
+        first = std::move(listItem);
+        last = first.get();
         size++;
         return true;
     }
     // insert at beginning and set next
-    else if (comparator->compare(*data, *first->data) < 0) {
-        listItem->next = first;
-        first = listItem;
+    else if (comparator->compare(*listItem->data, *first->data) < 0) {
+        listItem->next = std::move(first);
+        first = std::move(listItem);
         //last = first;
         size++;
         return true;
     }
     else {
         // insert somewhere in middle
-        bool duplicate = DuplicateCheck(data);
+        bool duplicate = DuplicateCheck(listItem->data.get());
         if (duplicate) {
             return false;
         }
 
-        OULink<T>* currentItem = first;
-        OULink<T>* previousItem = first;
+        OULink<T>* currentItem = first.get();
+        OULink<T>* previousItem = first.get();
 
         while (currentItem != nullptr) {
 
-            if (comparator->compare(*currentItem->data, *data) > 0) {
-                previousItem->next = listItem;
-                listItem->next = currentItem;
+            if (comparator->compare(*currentItem->data, *listItem->data) > 0) {
+                listItem->next = std::move(previousItem->next);
+                previousItem->next = std::move(listItem);
                 size++;
                 isInserted = true;
                 break;
             }
 
             previousItem = currentItem;
-            currentItem = currentItem->next;
+            currentItem = currentItem->next.get();
         }
 
         // insert at end
         if (currentItem == nullptr) {
 
-            last->next = listItem;
-            last = last->next;
+            last->next = std::move(listItem);
+            last = last->next.get();
             size++;
             isInserted = true;
         }
@@ -199,23 +192,23 @@ bool OULinkedList<T>::insert(const T* item) {
 template<typename T>
 bool OULinkedList<T>::append(const T* item) {
 
-    auto* listItem = new (std::nothrow) OULink<T>(item);
+    auto listItem = std::unique_ptr<OULink<T>>(new (std::nothrow) OULink<T>(item));
 
-    if (listItem == nullptr) {
-        throw new ExceptionMemoryNotAvailable();
+    if (!listItem) {
+        throw ExceptionMemoryNotAvailable{};
     }
 
     // if no first item, set the first item with above item
-    if (first == nullptr) {
-        first = listItem;
-        last = first;
+    if (!first) {
+        first = std::move(listItem);
+        last = first.get();
         size++;
         return true;
     }
     // check if item is greater than the data held by last
     else if (comparator->compare(*item, *last->data) > 0) {
-        last->next = listItem;
-        last = last->next;
+        last->next = std::move(listItem);
+        last = last->next.get();
         size++;
         return true;
     }
@@ -227,34 +220,28 @@ bool OULinkedList<T>::append(const T* item) {
 template<typename T>
 bool OULinkedList<T>::replace(const T* item) {
 
-    auto* replaceItem = new (std::nothrow) T(*item);
-
-    if (replaceItem == nullptr) {
-        throw new ExceptionMemoryNotAvailable();
-    }
-
     // list is empty so return false
-    if (first == nullptr) {
+    if (!first) {
         return false;
     }
     // first item is identical to item argument passed in
     else if (comparator->compare(*item, *first->data) == 0) {
-        *first->data = *replaceItem;
+        *first->data = *item;
         return true;
     }
     else {
 
         // check other values to replace
-        OULink<T>* currentItem = first;
+        OULink<T>* currentItem = first.get();
 
         while (currentItem != nullptr) {
 
             if (comparator->compare(*currentItem->data, *item) == 0) {
-                *currentItem->data = *replaceItem;
+                *currentItem->data = *item;
 
                 return true;
             }
-            currentItem = currentItem->next;
+            currentItem = currentItem->next.get();
         }
         return false;
     }
@@ -263,34 +250,33 @@ bool OULinkedList<T>::replace(const T* item) {
 template<typename T>
 bool OULinkedList<T>::remove(const T* item) {
 
-    auto* listItem = new (std::nothrow) OULink<T>(item);
-
-    if (listItem == nullptr) {
-        throw new ExceptionMemoryNotAvailable();
-    }
-
     // list is empty so nothing to remove
-    if (first == nullptr) {
+    if (!first) {
         return false;
     }
     // item is identical with data held by first, so delete first
     else if (comparator->compare(*item, *first->data) == 0) {
-        first = first->next;
+        auto removedItem = std::move(first);
+        first = std::move(removedItem->next);
         size--;
+        if (!first) {
+            last = nullptr;
+        }
         return true;
     }
     else {
 
         // remove somewhere else in list
-        OULink<T>* currentItem = first;
-        OULink<T>* previousItem = first;
+        OULink<T>* currentItem = first.get();
+        OULink<T>* previousItem = first.get();
 
         while (currentItem != nullptr) {
 
-            if (comparator->compare(*currentItem->data, *listItem->data) == 0) {
-                    previousItem->next = currentItem->next;
+            if (comparator->compare(*currentItem->data, *item) == 0) {
+                    auto removedItem = std::move(previousItem->next);
+                    previousItem->next = std::move(removedItem->next);
 
-                if (comparator->compare(*currentItem->data, *last->data) == 0) {
+                if (last == currentItem) {
                     last = previousItem;
                 }
 
@@ -298,7 +284,7 @@ bool OULinkedList<T>::remove(const T* item) {
                 return true;
             }
             previousItem = currentItem;
-            currentItem = currentItem->next;
+            currentItem = currentItem->next.get();
         }
         return false;
     }
@@ -308,11 +294,11 @@ template<typename T>
 T OULinkedList<T>::get() const {
 
     T result;
-    if (first != nullptr) {
+    if (first) {
         result = *first->data; // return first element
     }
     else {
-        throw new ExceptionLinkedListAccess();
+        throw ExceptionLinkedListAccess{};
     }
     return result;
 }
@@ -320,11 +306,11 @@ T OULinkedList<T>::get() const {
 template<typename T>
 OULink<T>* OULinkedList<T>::getFirstLink() {
 
-    if (first == nullptr) {
-        throw new ExceptionLinkedListAccess();
+    if (!first) {
+        throw ExceptionLinkedListAccess{};
     }
 
-    return first;
+    return first.get();
 }
 
 template<typename T>
@@ -332,8 +318,8 @@ T OULinkedList<T>::find(const T* item) const {
 
     T foundItem;
     // list is empty, return false
-    if (first == nullptr) {
-        throw new ExceptionLinkedListAccess();
+    if (!first) {
+        throw ExceptionLinkedListAccess{};
     }
     // first data is identical to item, so return item
     else if (comparator->compare(*item, *first->data) == 0) {
@@ -341,18 +327,18 @@ T OULinkedList<T>::find(const T* item) const {
     }
     else {
         // check the rest of the list
-        OULink<T> *currentItem = first;
+        OULink<T> *currentItem = first.get();
 
         while (currentItem != nullptr) {
 
             if (comparator->compare(*currentItem->data, *item) == 0) {
                 return *currentItem->data;
             }
-            currentItem = currentItem->next;
+            currentItem = currentItem->next.get();
         }
 
         // nothing found so throw exception
-        throw new ExceptionLinkedListAccess();
+        throw ExceptionLinkedListAccess{};
     }
     return foundItem;
 }
@@ -364,7 +350,7 @@ unsigned long OULinkedList<T>::getSize() const {
 
 template<typename T>
 OULinkedListEnumerator<T> OULinkedList<T>::enumerator() const {
-    OULinkedListEnumerator<T> listEnum(first);
+    OULinkedListEnumerator<T> listEnum(first.get());
     return listEnum;
 }
 #endif // !OU_LINKED_LIST

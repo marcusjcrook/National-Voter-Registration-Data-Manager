@@ -29,7 +29,7 @@ template <typename T>
 HashTableEnumerator<T>::HashTableEnumerator(HashTable<T>* hashTable) {
 
     if(hashTable == nullptr || hashTable->getSize() == 0) { // hash table is in invalid state to enumerate, so throw exception
-        throw new ExceptionHashTableAccess();
+        throw ExceptionHashTableAccess{};
     }
 
     this->hashTable = hashTable;
@@ -67,7 +67,7 @@ template <typename T>
 T HashTableEnumerator<T>::next() {
 
     if (bucket >= hashTable->getBaseCapacity()) { // bucket is too large, throw exception
-        throw new ExceptionEnumerationBeyondEnd();
+        throw ExceptionEnumerationBeyondEnd{};
     }
 
     if (!empty) { // if the bucket is empty, create a new bucket enumerator
@@ -110,7 +110,7 @@ T HashTableEnumerator<T>::peek() const {
             return hashTable->table[temp]->enumerator().peek(); // create new enumerator for temp and call peek on it
         }
         else { // temp is exceed base capacity so throw exception
-            throw new ExceptionEnumerationBeyondEnd();
+            throw ExceptionEnumerationBeyondEnd{};
         }
     }
 }

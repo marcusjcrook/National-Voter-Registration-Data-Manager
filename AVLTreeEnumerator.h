@@ -18,11 +18,11 @@ private:
         if (order == AVLTreeOrder::preorder) { // determine the order to build the stack, but in reverse for stack
 
             if (current->right != nullptr) { // insert right tree first
-                buildTraversalStack(current->right);
+                buildTraversalStack(current->right.get());
             }
 
             if (current->left != nullptr) { // insert left tree next
-                buildTraversalStack(current->left);
+                buildTraversalStack(current->left.get());
             }
 
             if (current->data != nullptr) { // insert the root
@@ -32,7 +32,7 @@ private:
         else if (order == AVLTreeOrder::inorder) {
 
             if (current->right != nullptr) { // insert right tree
-                buildTraversalStack(current->right);
+                buildTraversalStack(current->right.get());
             }
 
             if (current->data != nullptr) { // insert the root
@@ -40,7 +40,7 @@ private:
             }
 
             if (current->left != nullptr) { // insert the left tree
-                buildTraversalStack(current->left);
+                buildTraversalStack(current->left.get());
             }
         }
         else if (order == AVLTreeOrder::postorder){
@@ -50,14 +50,14 @@ private:
             }
 
             if (current->right != nullptr) { // insert the right tree
-                buildTraversalStack(current->right);
+                buildTraversalStack(current->right.get());
             }
 
             if (current->left != nullptr) { // insert the left tree
-                buildTraversalStack(current->left);
+                buildTraversalStack(current->left.get());
             }
         } else { // invalid order, throw an exception
-            throw new ExceptionAVLTreeAccess();
+            throw ExceptionAVLTreeAccess{};
         }
     }
 public:
@@ -74,7 +74,7 @@ AVLTreeEnumerator<T>::AVLTreeEnumerator(const AVLTree<T>* root, AVLTreeOrder ord
 
     // had to comment this out to pass one of the ZyLab output tests. My purge method worked fine, but this error check kept messing up one of the purge tests.
     if (root->data == nullptr) {
-        throw new ExceptionAVLTreeAccess();
+        throw ExceptionAVLTreeAccess{};
     }
     this->order = order;
     buildTraversalStack(root); // build the stack
@@ -97,7 +97,7 @@ T AVLTreeEnumerator<T>::next() {
 template <typename T>
 T AVLTreeEnumerator<T>::peek() const {
 
-    T* result = traversalStack.top()->data; // save the next result to return without removing it
+    T* result = traversalStack.top()->data.get(); // save the next result to return without removing it
     return *result;
 }
 

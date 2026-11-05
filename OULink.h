@@ -1,8 +1,9 @@
 #ifndef OU_LINK_H
 #define OU_LINK_H
 
-#include <cstdlib>
-#include <iostream>
+#include <memory>
+#include <new>
+#include "Exceptions.h"
 
 template <typename T>
 class OULink {
@@ -11,26 +12,19 @@ class OULink {
     template <typename>
     friend class OULinkedListEnumerator;
 private:
-    T* data = nullptr;										// pointer to data item of any type
-    OULink* next = nullptr;								// pointer to next link
+    std::unique_ptr<T> data;								// owned data item
+    std::unique_ptr<OULink> next;							// owned next link
 public:
     explicit OULink(const T* item);
-    virtual ~OULink();
+    virtual ~OULink() = default;
 };
 
 // constructor for OULink
 template <typename T>
-OULink<T>::OULink(const T* item) {
-    data = new T(*item);
-}
-
-// destructor for OULink
-template<typename T>
-OULink<T>::~OULink() {
-    delete data; // delete data at first
-    data = nullptr;
-    delete next; // delete rest of list
-    next = nullptr;
-
+OULink<T>::OULink(const T* item)
+    : data(new (std::nothrow) T(*item)) {
+    if (!data) {
+        throw ExceptionMemoryNotAvailable{};
+    }
 }
 #endif // !OU_LINK_H

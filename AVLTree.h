@@ -4,6 +4,8 @@
 #include "Comparator.h"
 #include <cstdlib>
 #include "Exceptions.h"
+#include <memory>
+#include <utility>
 
 template <typename T>
 class AVLTree {
@@ -12,10 +14,10 @@ class AVLTree {
 private:
     Comparator<T>* comparator = nullptr;				// used to determine tree order and item equality
     unsigned long size = 0; 						// actual number of items currently in tree
-    T* data = nullptr;									// pointer to data at this node
+    std::unique_ptr<T> data;							// owned data at this node
     int diff = 0;									// height of right minus height of left
-    AVLTree<T>* left = nullptr;						// pointer to left subtree
-    AVLTree<T>* right = nullptr;						// pointer to right subtree
+    std::unique_ptr<AVLTree<T>> left;					// owned left subtree
+    std::unique_ptr<AVLTree<T>> right;					// owned right subtree
     void zig();										// right rotation
     void zag();										// left rotation
     void zigzag();									// left rotation on left subtree, followed by right rotation
@@ -24,7 +26,12 @@ private:
 
 public:
     explicit AVLTree(Comparator<T>* comparator);	// creates empty linked tree with comparator
-    virtual ~AVLTree();								// deletes all links and their data items
+    AVLTree(const AVLTree& other);
+    AVLTree& operator=(const AVLTree& other);
+    AVLTree(AVLTree&& other) noexcept = default;
+    AVLTree& operator=(AVLTree&& other) noexcept = default;
+    virtual ~AVLTree() = default;
+    void swap(AVLTree& other) noexcept;
 
     // if an equivalent item is not already present, insert item in order and return true
     // if an equivalent item is already present, leave tree unchanged and return false
@@ -39,7 +46,7 @@ public:
     bool remove(const T* item);
 
     // if an equivalent item is present, return a copy of the item
-    // if an equivalent item is not present, throw a new ExceptionAVLTreeAccess
+    // if an equivalent item is not present, throw ExceptionAVLTreeAccess
     T find(const T* item) const;
 
     // returns the current number of items in the tree
@@ -52,34 +59,46 @@ AVLTree<T>::AVLTree(Comparator<T>* comparator) {
 }
 
 template<typename T>
-AVLTree<T>::~AVLTree() {
-    if (data != nullptr) { // delete the data in the tree
-        delete data; // delete the data
-        data = nullptr; // set it to nullptr
-    }
+AVLTree<T>::AVLTree(const AVLTree& other)
+    : comparator(other.comparator),
+      size(other.size),
+      data(other.data ? std::make_unique<T>(*other.data) : nullptr),
+      diff(other.diff),
+      left(other.left ? std::make_unique<AVLTree<T>>(*other.left) : nullptr),
+      right(other.right ? std::make_unique<AVLTree<T>>(*other.right) : nullptr) {
+}
 
-    if (left != nullptr) { // delete left tree
-        delete left;
-        left = nullptr;
+template<typename T>
+AVLTree<T>& AVLTree<T>::operator=(const AVLTree& other) {
+    if (this != &other) {
+        AVLTree copy(other);
+        swap(copy);
     }
+    return *this;
+}
 
-    if (right != nullptr) { // delete right tree
-        delete right;
-        right = nullptr;
-    }
+template<typename T>
+void AVLTree<T>::swap(AVLTree& other) noexcept {
+    using std::swap;
+    swap(comparator, other.comparator);
+    swap(size, other.size);
+    swap(data, other.data);
+    swap(diff, other.diff);
+    swap(left, other.left);
+    swap(right, other.right);
 }
 
 template<typename T>
 bool AVLTree<T>::insert(const T* item) { // todo: need to check for available memory
     bool result = false;
     if (data == nullptr) { // no data in tree
-        data = new T(*item); // create new item
+        data = std::make_unique<T>(*item); // create new item
         result = true; // return true
     } else {
         if (comparator->compare(*item, *data) < 0) { // item is less than data, so attempt to insert in left tree
             if (left == nullptr) { // no left tree yet, so create it and add the element
-                left = new AVLTree<T>(comparator);
-                left->data = new T(*item);
+                left = std::make_unique<AVLTree<T>>(comparator);
+                left->data = std::make_unique<T>(*item);
                 result = true;
                 diff--; // decrease diff
             } else { // left tree not nullptr, call insert recursively
@@ -96,8 +115,8 @@ bool AVLTree<T>::insert(const T* item) { // todo: need to check for available me
             }
         } else if (comparator->compare(*item, *data) > 0) { // item is greater than item stored at data, so attempt to insert in right tree
             if (right == nullptr) { // no right tree yet, create it and insert the item
-                right = new AVLTree<T>(comparator);
-                right->data = new T(*item);
+                right = std::make_unique<AVLTree<T>>(comparator);
+                right->data = std::make_unique<T>(*item);
                 result = true;
                 diff++;
             } else { // right not nullptr, so same drill as above
@@ -130,8 +149,7 @@ bool AVLTree<T>::replace(const T* item) {
 
     bool result = false;
     if (comparator->compare(*item, *data) == 0) { // item to replace is equal to data, so replace it
-        delete data;
-        data = new T(*item);
+        data = std::make_unique<T>(*item);
         result = true;
     } else {
         if (comparator->compare(*item, *data) < 0) { // item is less than data, so call replace on left
@@ -169,62 +187,54 @@ bool AVLTree<T>::remove(const T* item) {
 
     if (comparator->compare(*item, *data) == 0) { // item is equal to data
         if (left == nullptr && right == nullptr) { // if left and right are both nullptr, set data to nullptr
-            delete data;
-            data = nullptr;
+            data.reset();
             result = true;
         } else if (left != nullptr && right == nullptr) { // if right is nullptr, but left is not, set data to left data
-            delete data;
-            data = new T(*left->data);
+            data = std::make_unique<T>(*left->data);
             result = true;
-            bool leftResult = left->remove(left->data);
+            bool leftResult = left->remove(left->data.get());
 
             if (leftResult) {
                 result = true;
             }
             if(left->data == nullptr) { // if left data is nullptr, item was deleted, so delete and set nullptr
-                delete left;
-                left = nullptr;
+                left.reset();
                 diff++;
             }
         } else if (left == nullptr && right != nullptr){ // if left is nullptr, but right is not, set data to right data
 
-            delete data;
-            data = new T(*right->data);
+            data = std::make_unique<T>(*right->data);
             result = true;
-            bool rightResult = right->remove(right->data);
+            bool rightResult = right->remove(right->data.get());
 
             if (rightResult) {
                 result = true;
             }
 
             if (right->data == nullptr) { // if right data is nullptr, it was removed, so delete it and set the right to nullptr
-                delete right;
-                right = nullptr;
+                right.reset();
                 diff--;
             }
         } else { // neither side is nullptr
             if (right->left == nullptr) { // if right->left is nullptr, set the data to the item on the right
-                delete data;
-                data = new T(*right->data);
+                data = std::make_unique<T>(*right->data);
                 result = true;
-                bool rightResult = right->remove(right->data);
+                bool rightResult = right->remove(right->data.get());
 
                 if (rightResult) {
                     result = true;
                 }
 
                 if (right->data == nullptr) { // right data is NUL, so delete the tree and set it to nullptr
-                    delete right;
-                    right = nullptr;
+                    right.reset();
                     diff--;
                 }
 
             } else if (right->left != nullptr) { // right->left is not nullptr
                 if (right->left->left == nullptr) { // right->left->left is nullptr, so set data to right->left
-                    delete data;
                     int leftRightDiff = right->left->diff; // keep track of the diff
-                    data = new T(*right->left->data);
-                    bool rightLeftResult = right->left->remove(right->left->data);
+                    data = std::make_unique<T>(*right->left->data);
+                    bool rightLeftResult = right->left->remove(right->left->data.get());
 
                     if (leftRightDiff == 1 && right->left->diff == 0) { // relevant change in diff, so increase diff
                         right->diff++;
@@ -235,8 +245,7 @@ bool AVLTree<T>::remove(const T* item) {
                     }
 
                     if (right->left->data == nullptr) { // if left->right is nullptr, delete it and set to nullptr
-                        delete right->left;
-                        right->left = nullptr;
+                        right->left.reset();
                         if (right->right != nullptr) { // if right->right is not nullptr, need to increase right diff and rebalance the right tree
                             right->diff++;
                             right->rebalance();
@@ -248,21 +257,19 @@ bool AVLTree<T>::remove(const T* item) {
 
                 } else { // right->left->left is not nullptr, so need to find left-most tree in the right side
 
-                    AVLTree<T>* temp = right->left;
+                    AVLTree<T>* temp = right->left.get();
                     while (temp->left != nullptr) { // change temp until the left-most item is found
-                        temp = temp->left;
+                        temp = temp->left.get();
                     }
-                    delete data;
-                    data = new T(*temp->data);
-                    bool rightResult = right->remove(temp->data); // remove the data from the right tree
+                    data = std::make_unique<T>(*temp->data);
+                    bool rightResult = right->remove(temp->data.get()); // remove the data from the right tree
 
                     if (rightResult) {
                         result = true;
                     }
 
                     if (right->data == nullptr) { // if right data is nullptr, need to increment diff
-                        delete right;
-                        right = nullptr;
+                        right.reset();
                         diff++;
                     }
                 }
@@ -282,8 +289,7 @@ bool AVLTree<T>::remove(const T* item) {
             }
 
             if (left->data == nullptr) { // if left data is nullptr, need to increase diff
-                delete left;
-                left = nullptr;
+                left.reset();
                 diff++;
             }
         }
@@ -303,8 +309,7 @@ bool AVLTree<T>::remove(const T* item) {
             }
 
             if (right->data == nullptr) { // if right data is nullptr, delete it and set it to nullptr
-                delete right;
-                right = nullptr;
+                right.reset();
                 diff--;
             }
         }
@@ -322,7 +327,7 @@ template<typename T>
 T AVLTree<T>::find(const T* item) const {
 
     if (data == nullptr) { // tree is empty, so throw an exception
-        throw new ExceptionAVLTreeAccess();
+        throw ExceptionAVLTreeAccess{};
     }
 
     T result;
@@ -332,14 +337,14 @@ T AVLTree<T>::find(const T* item) const {
     }
     else if (comparator->compare(*item, *data) < 0) { // item is less than data, so call find on left subtree
             if (left == nullptr) { // left is nullptr, so throw exception
-                throw new ExceptionAVLTreeAccess();
+                throw ExceptionAVLTreeAccess{};
             } else {
                 result = left->find(item);
             }
 
     } else {
             if (right == nullptr) { // right is nullptr, so throw an exception
-                throw new ExceptionAVLTreeAccess();
+                throw ExceptionAVLTreeAccess{};
             } else {
                 result = right->find(item);
             }
@@ -364,16 +369,14 @@ void AVLTree<T>::zig()
     int pdiff = left->diff;
 
     // modify the tree
-    AVLTree<T>* olnr = left;  // olnr is "old left, new right"
-    left = olnr->left;
-    olnr->left = olnr->right;
-    olnr->right = right;
-    right = olnr;
+    auto olnr = std::move(left);  // olnr is "old left, new right"
+    left = std::move(olnr->left);
+    olnr->left = std::move(olnr->right);
+    olnr->right = std::move(right);
+    right = std::move(olnr);
 
     // note that the modifications kept the node itself in place, so we need to swap its data with its olnr's
-    T* tempData = data;
-    data = olnr->data;
-    olnr->data = tempData;
+    data.swap(right->data);
 
     // update the diff fields for node and new right
     if (pdiff < 0) {  // if imbalance was outside left heavy (left-left violation)
@@ -397,16 +400,14 @@ void AVLTree<T>::zag()
     int pdiff = right->diff;
 
     // modify the tree
-    AVLTree<T>* ornl = right;  // ornl is "old right, new left"
-    right = ornl->right;
-    ornl->right = ornl->left;
-    ornl->left = left;
-    left = ornl;
+    auto ornl = std::move(right);  // ornl is "old right, new left"
+    right = std::move(ornl->right);
+    ornl->right = std::move(ornl->left);
+    ornl->left = std::move(left);
+    left = std::move(ornl);
 
     // note that the modifications kept the node itself in place, so we need to swap its data with its ornl's
-    T* tempData = data;
-    data = ornl->data;
-    ornl->data = tempData;
+    data.swap(left->data);
 
     // update the diff fields for node and new left
     if (pdiff > 0) {  // if imbalance was outside right heavy (right-right violation)

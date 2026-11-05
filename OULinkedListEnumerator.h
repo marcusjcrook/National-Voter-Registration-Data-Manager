@@ -38,11 +38,11 @@ template <typename T>
 T OULinkedListEnumerator<T>::next() {
 
     if (current == nullptr) {
-        throw new ExceptionEnumerationBeyondEnd();
+        throw ExceptionEnumerationBeyondEnd{};
     }
 
     T item = *current->data; // return data for current
-    current = current->next; // advance position
+    current = current->next.get(); // advance position
     return item;
 }
 
@@ -52,7 +52,7 @@ template<typename T>
 T OULinkedListEnumerator<T>::peek() const {
 
     if (current == nullptr) {
-        throw new ExceptionEnumerationBeyondEnd();
+        throw ExceptionEnumerationBeyondEnd{};
     }
     T item = *current->data; // return data without advancing position
     return item;

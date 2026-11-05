@@ -1,6 +1,9 @@
 #ifndef NVRA_ARRAY_H
 #define NVRA_ARRAY_H
 
+#include <memory>
+#include <new>
+#include <utility>
 #include "NvraRecord.h"
 #include "Exceptions.h"
 
@@ -12,64 +15,113 @@ private:
 
     unsigned long capacity = DEFAULT_ARRAY_CAPACITY; // maximum capacity, in records
     unsigned long size = 0; // actual number of items currently in array
-    Type* data = nullptr; // pointer to array of records
+    std::unique_ptr<Type[]> data; // owns the array of records
 
     // private helper method for doubling capacity
     void doubleCapacity() {
 
-        unsigned long tempCapacity = capacity;
-        capacity *= 2;
-        Type* tempPointer = new (std::nothrow) Type[capacity];
+        const unsigned long newCapacity = capacity == 0 ? DEFAULT_ARRAY_CAPACITY : capacity * 2;
+        std::unique_ptr<Type[]> tempPointer(new (std::nothrow) Type[newCapacity]);
 
-        if (tempPointer == nullptr) {
-            throw new ExceptionMemoryNotAvailable;
+        if (!tempPointer) {
+            throw ExceptionMemoryNotAvailable{};
         }
 
-        for (unsigned long index = 0; index < tempCapacity; ++index) {
+        for (unsigned long index = 0; index < size; ++index) {
             tempPointer[index] = data[index];
         }
-        delete[] data;
-        data = tempPointer;
+        data = std::move(tempPointer);
+        capacity = newCapacity;
     }
     // private helper method for halving capacity
     void halveCapacity() {
 
-        capacity /= 2;
-        Type *tempPointer = new (std::nothrow) Type[capacity];
+        const unsigned long newCapacity = capacity / 2;
+        std::unique_ptr<Type[]> tempPointer(new (std::nothrow) Type[newCapacity]);
 
-        if (tempPointer == nullptr) {
-            throw new ExceptionMemoryNotAvailable();
+        if (!tempPointer) {
+            throw ExceptionMemoryNotAvailable{};
         }
 
 
-        for (unsigned long tempIndex = 0; tempIndex < capacity; ++tempIndex) {
+        for (unsigned long tempIndex = 0; tempIndex < newCapacity; ++tempIndex) {
             tempPointer[tempIndex] = data[tempIndex];
         }
-        delete[] data;
-        data = tempPointer;
+        data = std::move(tempPointer);
+        capacity = newCapacity;
     }
 
 public:
 
     // constructs array with default capacity
     TemplatedArray() {
-        data = new Type[capacity];
+        data.reset(new Type[capacity]);
     }
+
     // constructs array with specified capacity
     explicit TemplatedArray(unsigned long capacity) {
-        data = new (std::nothrow) Type[capacity];
+        data.reset(new (std::nothrow) Type[capacity]);
 
         if (data == nullptr) {
-            throw new ExceptionMemoryNotAvailable();
+            throw ExceptionMemoryNotAvailable{};
         }
 
         this->capacity = capacity;
     }
-    // frees array space as object is deleted
-    virtual ~TemplatedArray() {
-        delete[] data;
-        data = nullptr;
+
+    TemplatedArray(const TemplatedArray& other)
+        : capacity(other.capacity), size(other.size) {
+        if (capacity == 0) {
+            return;
+        }
+
+        std::unique_ptr<Type[]> copy(new (std::nothrow) Type[capacity]);
+        if (!copy) {
+            throw ExceptionMemoryNotAvailable{};
+        }
+
+        for (unsigned long index = 0; index < size; ++index) {
+            copy[index] = other.data[index];
+        }
+        data = std::move(copy);
     }
+
+    TemplatedArray& operator=(const TemplatedArray& other) {
+        if (this != &other) {
+            TemplatedArray copy(other);
+            swap(copy);
+        }
+        return *this;
+    }
+
+    TemplatedArray(TemplatedArray&& other) noexcept
+        : capacity(other.capacity), size(other.size), data(std::move(other.data)) {
+        other.capacity = 0;
+        other.size = 0;
+    }
+
+    TemplatedArray& operator=(TemplatedArray&& other) noexcept {
+        if (this != &other) {
+            capacity = other.capacity;
+            size = other.size;
+            data = std::move(other.data);
+
+            other.capacity = 0;
+            other.size = 0;
+        }
+        return *this;
+    }
+
+    // frees array space as object is deleted
+    virtual ~TemplatedArray() = default;
+
+    void swap(TemplatedArray& other) noexcept {
+        using std::swap;
+        swap(capacity, other.capacity);
+        swap(size, other.size);
+        swap(data, other.data);
+    }
+
     // adds record, increments size, doubles capacity as necessary
     void add(Type* record) {
 
@@ -86,37 +138,29 @@ public:
 
         // invalid index; throw exception
         if (index > size) {
-            throw new ExceptionIndexOutOfRange();
+            throw ExceptionIndexOutOfRange{};
         }
 
         if (size == capacity) {
             doubleCapacity();
         }
 
-        Type* tempArray = new (std::nothrow) Type[capacity];
+        std::unique_ptr<Type[]> tempArray(new (std::nothrow) Type[capacity]);
 
         // not enough memory; throw exception
-        if (tempArray == nullptr) {
-            throw new ExceptionMemoryNotAvailable();
+        if (!tempArray) {
+            throw ExceptionMemoryNotAvailable{};
         }
 
 
-        unsigned long tempArrayIndex = 0;
-        unsigned long dataIndex = 0;
-
-        while (tempArrayIndex < capacity) {
-
-            if (tempArrayIndex == index) {
-                tempArray[tempArrayIndex] = *toAdd;
-            }
-            else {
-                tempArray[tempArrayIndex] = data[dataIndex];
-                ++dataIndex;
-            }
-            ++tempArrayIndex;
+        for (unsigned long sourceIndex = 0; sourceIndex < index; ++sourceIndex) {
+            tempArray[sourceIndex] = data[sourceIndex];
         }
-        delete[] data;
-        data = tempArray;
+        tempArray[index] = *toAdd;
+        for (unsigned long sourceIndex = index; sourceIndex < size; ++sourceIndex) {
+            tempArray[sourceIndex + 1] = data[sourceIndex];
+        }
+        data = std::move(tempArray);
         size++;
     }
 
@@ -125,38 +169,32 @@ public:
 
         // invalid index; throw exception
         if (index >= size) {
-            throw new ExceptionIndexOutOfRange();
+            throw ExceptionIndexOutOfRange{};
         }
 
-        Type* tempArray = new (std::nothrow) Type[capacity];
+        std::unique_ptr<Type[]> tempArray(new (std::nothrow) Type[capacity]);
 
         // not enough memory; throw exception
-        if (tempArray == nullptr) {
-            throw new ExceptionMemoryNotAvailable();
+        if (!tempArray) {
+            throw ExceptionMemoryNotAvailable{};
         }
 
         // replace at appropriate index
-        for (unsigned long replaceIndex = 0; replaceIndex < capacity; ++replaceIndex) {
-            if (replaceIndex != index) {
-                tempArray[replaceIndex] = data[replaceIndex];
-            }
-            else {
-                tempArray[replaceIndex] = *toReplace;
-            }
+        for (unsigned long replaceIndex = 0; replaceIndex < size; ++replaceIndex) {
+            tempArray[replaceIndex] = replaceIndex == index ? *toReplace : data[replaceIndex];
         }
-        delete[] data;
-        data = tempArray;
+        data = std::move(tempArray);
     }
 
     void remove() {
 
-        delete[] data;
-        data = new (std::nothrow) Type[capacity];
+        std::unique_ptr<Type[]> tempArray(new (std::nothrow) Type[capacity]);
 
-        if (data == nullptr) {
-            throw new ExceptionMemoryNotAvailable();
+        if (!tempArray) {
+            throw ExceptionMemoryNotAvailable{};
         }
 
+        data = std::move(tempArray);
         size = 0;
     }
 
@@ -165,30 +203,24 @@ public:
 
         // invalid index; throw exception
         if (index >= size) {
-            throw new ExceptionIndexOutOfRange();
+            throw ExceptionIndexOutOfRange{};
         }
 
-        Type* tempArray = new (std::nothrow) Type[capacity];
+        std::unique_ptr<Type[]> tempArray(new (std::nothrow) Type[capacity]);
 
         // not enough memory; throw exception
-        if (tempArray == nullptr) {
-            throw new ExceptionMemoryNotAvailable();
+        if (!tempArray) {
+            throw ExceptionMemoryNotAvailable{};
         }
 
 
-        unsigned long dataIndex = 0;
-        unsigned long tempArrayIndex = 0;
-
-        while (dataIndex < capacity) {
-
-            if (dataIndex != index) {
-                tempArray[tempArrayIndex] = data[dataIndex];
-                ++tempArrayIndex;
-            }
-            ++dataIndex;
+        for (unsigned long sourceIndex = 0; sourceIndex < index; ++sourceIndex) {
+            tempArray[sourceIndex] = data[sourceIndex];
         }
-        delete[] data;
-        data = tempArray;
+        for (unsigned long sourceIndex = index + 1; sourceIndex < size; ++sourceIndex) {
+            tempArray[sourceIndex - 1] = data[sourceIndex];
+        }
+        data = std::move(tempArray);
         size--;
 
         // decrement size when necessary
@@ -203,7 +235,7 @@ public:
 
         // invalid index; throw exception
         if (index >= size) {
-            throw new ExceptionIndexOutOfRange();
+            throw ExceptionIndexOutOfRange{};
         }
         return data[index];
     }
@@ -223,9 +255,15 @@ public:
 
         // invalid index; throw exception
         if (index >= size) {
-            throw new ExceptionIndexOutOfRange();
+            throw ExceptionIndexOutOfRange{};
         }
         return data[index];
     }
 };
+
+template<class Type>
+void swap(TemplatedArray<Type>& first, TemplatedArray<Type>& second) noexcept {
+    first.swap(second);
+}
+
 #endif

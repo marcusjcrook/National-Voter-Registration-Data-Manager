@@ -8,6 +8,7 @@
 #include <regex>
 #include <cmath>
 #include <fstream>
+#include <memory>
 #include "NvraRecord.h"
 #include "Sorter.h"
 #include "Search.h"
@@ -306,7 +307,10 @@ void createHashTableFromTree(AVLTree<NvraRecord>* oldTree, HashTable<NvraRecord>
 }
 
 // function to combine old tree and new tree
-void mergeOldTreeNewTree(AVLTree<NvraRecord>*& oldTree, AVLTree<NvraRecord>* newTree, long& records) {
+void mergeOldTreeNewTree(
+        std::unique_ptr<AVLTree<NvraRecord>>& oldTree,
+        std::unique_ptr<AVLTree<NvraRecord>> newTree,
+        long& records) {
 
     records = 0;
     if (newTree->getSize() == 0) { // no elements in tree to be added, so return
@@ -315,15 +319,15 @@ void mergeOldTreeNewTree(AVLTree<NvraRecord>*& oldTree, AVLTree<NvraRecord>* new
 
     NvraComparator compare(0);
     NvraComparator* comparePointer = &compare;
-    auto* newNewTree = new AVLTree<NvraRecord>(comparePointer);
+    auto newNewTree = std::make_unique<AVLTree<NvraRecord>>(comparePointer);
 
     NvraRecord oldRecord;
     NvraRecord newRecord;
     NvraRecord *oldRecordPointer;
     NvraRecord *newRecordPointer;
 
-    AVLTreeEnumerator<NvraRecord> oldTreeEnum(oldTree, AVLTreeOrder::inorder);
-    AVLTreeEnumerator<NvraRecord> newTreeEnum(newTree, AVLTreeOrder::inorder);
+    AVLTreeEnumerator<NvraRecord> oldTreeEnum(oldTree.get(), AVLTreeOrder::inorder);
+    AVLTreeEnumerator<NvraRecord> newTreeEnum(newTree.get(), AVLTreeOrder::inorder);
 
 
     while (oldTreeEnum.hasNext() && newTreeEnum.hasNext()) { // iterate until one (or both) of the trees is empty
@@ -365,21 +369,23 @@ void mergeOldTreeNewTree(AVLTree<NvraRecord>*& oldTree, AVLTree<NvraRecord>* new
         }
     }
 
-    delete newTree; // delete the new tree
-    delete oldTree; // delete the old tree
-    oldTree = new AVLTree<NvraRecord>(comparePointer);
-    *oldTree = *newNewTree; // redirect data
+    oldTree = std::move(newNewTree);
 }
 
 // function to merge file elements
-bool mergeLoop(AVLTree<NvraRecord>*& oldTree, long& records, long& attemptedRecords, long& validRecords, bool& first) {
+bool mergeLoop(
+        std::unique_ptr<AVLTree<NvraRecord>>& oldTree,
+        long& records,
+        long& attemptedRecords,
+        long& validRecords,
+        bool& first) {
 
     bool firstFile = first;
     bool dataRead = false; // has data been read in?
     std::string requestedFile;
     NvraComparator compare(0);
     NvraComparator* comparePointer = &compare;
-    auto* newTree = new AVLTree<NvraRecord>(comparePointer);
+    auto newTree = std::make_unique<AVLTree<NvraRecord>>(comparePointer);
 
     std::cout << "Enter data file name: ";
 
@@ -476,7 +482,7 @@ bool mergeLoop(AVLTree<NvraRecord>*& oldTree, long& records, long& attemptedReco
         fileToRead.close();
 
         if (!firstFile) {
-            mergeOldTreeNewTree(oldTree, newTree, records); // new data, so call merge trees method
+            mergeOldTreeNewTree(oldTree, std::move(newTree), records); // new data, so call merge trees method
         }
 
         return dataRead; // return whether data has been read
@@ -484,7 +490,10 @@ bool mergeLoop(AVLTree<NvraRecord>*& oldTree, long& records, long& attemptedReco
     return dataRead; // return whether data has been read
 }
 
-void purgeOldTree(AVLTree<NvraRecord>*& oldTree, AVLTree<NvraRecord>* newTree, long& records) {
+void purgeOldTree(
+        AVLTree<NvraRecord>* oldTree,
+        std::unique_ptr<AVLTree<NvraRecord>> newTree,
+        long& records) {
 
     if (oldTree->getSize() == 0 || newTree->getSize() == 0) { // if new tree is empty, nothing to purge
         return;
@@ -493,7 +502,7 @@ void purgeOldTree(AVLTree<NvraRecord>*& oldTree, AVLTree<NvraRecord>* newTree, l
     bool itemRemoved;
     NvraRecord recordToRemove;
     NvraRecord *recordPointer;
-    AVLTreeEnumerator<NvraRecord> newTreeEnum(newTree, AVLTreeOrder::inorder);
+    AVLTreeEnumerator<NvraRecord> newTreeEnum(newTree.get(), AVLTreeOrder::inorder);
 
     // while the new tre has items, attempt to remove them from the old AVLTree
     while (newTreeEnum.hasNext()) {
@@ -506,15 +515,18 @@ void purgeOldTree(AVLTree<NvraRecord>*& oldTree, AVLTree<NvraRecord>* newTree, l
             records--;
         }
     }
-    delete newTree; // delete the new tree
 }
 
 //function purge data from tree
-void purgeLoop(AVLTree<NvraRecord>* oldTree, long& records, long& attemptedRecords, long& validRecords) {
+void purgeLoop(
+        AVLTree<NvraRecord>* oldTree,
+        long& records,
+        long& attemptedRecords,
+        long& validRecords) {
 
     NvraComparator compare(0);
     NvraComparator* comparePointer = &compare;
-    auto* newTree = new AVLTree<NvraRecord>(comparePointer);
+    auto newTree = std::make_unique<AVLTree<NvraRecord>>(comparePointer);
     std::string requestedFile;
     std::cout << "Enter data file name: ";
 
@@ -590,7 +602,7 @@ void purgeLoop(AVLTree<NvraRecord>* oldTree, long& records, long& attemptedRecor
         }
 
         fileToRead.close();
-        purgeOldTree(oldTree, newTree, records); // purge the new records from the old tree
+        purgeOldTree(oldTree, std::move(newTree), records); // purge the new records from the old tree
         return;
     }
 }
@@ -600,7 +612,7 @@ int main() {
     NvraComparator compare(0); // compare according to the record ID
     NvraComparator* comparePointer = &compare; // pointer to comparator
     TemplatedArray<NvraRecord> oldNvraArray; // array to store data for searching and sorting
-    auto* avl = new AVLTree<NvraRecord>(comparePointer); // tree to hold the record IDs
+    auto avl = std::make_unique<AVLTree<NvraRecord>>(comparePointer); // tree to hold the record IDs
     NvraHasher nhash; // hash
     NvraHasher* hashPointer = &nhash;// pointer to hash
 
@@ -612,10 +624,10 @@ int main() {
 
         bool isFirst = true; // is this the first file read in?
         bool dataRead = mergeLoop(avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords, isFirst);
-        createArrayFromTree(avl, oldNvraArray); // create an array from the tree
+        createArrayFromTree(avl.get(), oldNvraArray); // create an array from the tree
 
-        auto* tableHash = new HashTable<NvraRecord>(comparePointer, hashPointer, avl->getSize()); // hash table to hold IDs for searching records
-        createHashTableFromTree(avl, tableHash); // create a hash table from the tree
+        auto tableHash = std::make_unique<HashTable<NvraRecord>>(comparePointer, hashPointer, avl->getSize()); // hash table to hold IDs for searching records
+        createHashTableFromTree(avl.get(), tableHash.get()); // create a hash table from the tree
 
         if (!dataRead) { // data has not been read in, so exit
             return 0;
@@ -637,20 +649,20 @@ int main() {
 
                 } else if (answer == "f") { // find by a column value
 
-                    findLoop(oldNvraArray, tableHash, columnSorted); // call find method
+                    findLoop(oldNvraArray, tableHash.get(), columnSorted); // call find method
 
                 } else if (answer == "m") { // merge old file with new file
 
                     bool isSecond = false; // first file has already been read
                     mergeLoop(avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords, isSecond); // call merge method
-                    createArrayFromTree(avl, oldNvraArray);
-                    createHashTableFromTree(avl, tableHash);
+                    createArrayFromTree(avl.get(), oldNvraArray);
+                    createHashTableFromTree(avl.get(), tableHash.get());
 
                 } else if (answer == "p") { // purge a file from the data
 
-                    purgeLoop(avl, nvraRecordCounter, attemptedNvraRecords, validNvraRecords); // call purge method
-                    createArrayFromTree(avl, oldNvraArray);
-                    createHashTableFromTree(avl, tableHash);
+                    purgeLoop(avl.get(), nvraRecordCounter, attemptedNvraRecords, validNvraRecords); // call purge method
+                    createArrayFromTree(avl.get(), oldNvraArray);
+                    createHashTableFromTree(avl.get(), tableHash.get());
 
                 } else if (answer == "h") { // print hash table
 
@@ -658,17 +670,17 @@ int main() {
 
                 } else if(answer == "pre") { // conduct preorder traversal of tree and print it
 
-                    AVLTreeEnumerator<NvraRecord> treeEnum (avl, AVLTreeOrder::preorder);
+                    AVLTreeEnumerator<NvraRecord> treeEnum (avl.get(), AVLTreeOrder::preorder);
                     printAVL(treeEnum, nvraRecordCounter, attemptedNvraRecords, validNvraRecords);
 
                 } else if (answer == "in") { // conduct inorder traversal of the tree and print it
 
-                    AVLTreeEnumerator<NvraRecord> treeEnum (avl, AVLTreeOrder::inorder);
+                    AVLTreeEnumerator<NvraRecord> treeEnum (avl.get(), AVLTreeOrder::inorder);
                     printAVL(treeEnum, nvraRecordCounter, attemptedNvraRecords, validNvraRecords);
 
                 } else if (answer == "post") { // conduct a postorder traversal of the tree
 
-                    AVLTreeEnumerator<NvraRecord> treeEnum (avl, AVLTreeOrder::postorder);
+                    AVLTreeEnumerator<NvraRecord> treeEnum (avl.get(), AVLTreeOrder::postorder);
                     printAVL(treeEnum, nvraRecordCounter, attemptedNvraRecords, validNvraRecords);
 
                 } else {
@@ -686,29 +698,23 @@ int main() {
             // print friendly message
             std::cout << "Thanks for using VoteR." << std::endl;
         }
-    } catch (const ExceptionIndexOutOfRange* e ) { // index is out of range,throw an exception
+    } catch (const ExceptionIndexOutOfRange&) { // index is out of range, throw an exception
         std::cout << "Index out of bounds! Enter a valid index" << std::endl;
-        delete e;
         return EXIT_FAILURE;
-    } catch (const ExceptionMemoryNotAvailable* e) { // memory unavailable
+    } catch (const ExceptionMemoryNotAvailable&) { // memory unavailable
         std::cout << "Memory not available!" << std::endl;
-        delete e;
         return EXIT_FAILURE;
-    } catch (const ExceptionEnumerationBeyondEnd* e) { // enumeration extended beyond the end of the LinkedList
+    } catch (const ExceptionEnumerationBeyondEnd&) { // enumeration extended beyond the end of the LinkedList
         std::cout << "Enumeration beyond end!" << std::endl;
-        delete e;
         return EXIT_FAILURE;
-    } catch (const ExceptionLinkedListAccess* e) { // accessing element beyond end of LinkedList
+    } catch (const ExceptionLinkedListAccess&) { // accessing element beyond end of LinkedList
         std::cout << "Exception linkedlist access!" << std::endl;
-        delete e;
         return EXIT_FAILURE;
-    } catch (const ExceptionHashTableAccess* e) { // accessing element not in hash table
+    } catch (const ExceptionHashTableAccess&) { // accessing element not in hash table
         std::cout << "Exception Hash Table access!" << std::endl;
-        delete e;
         return EXIT_FAILURE;
-    } catch (const ExceptionAVLTreeAccess* e) { // attempting to access element beyond tree size
+    } catch (const ExceptionAVLTreeAccess&) { // attempting to access element beyond tree size
         std::cout << "Exception AVLTree access!" << std::endl;
-        delete e;
         return EXIT_FAILURE;
     }
     return 0;
